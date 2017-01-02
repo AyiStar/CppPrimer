@@ -180,5 +180,97 @@ if the initializer might lead to the loss of information.
 
 It is an error to *copy* or try to *access* the value of a variable whose value is *undefined*.
 
+Initialize **every** object of built-in type.
 
+A **declaration** asserts the existence of a variable, function, or type defined elsewhere.
+It makes a name known to the program.
+A file that wants to use a name defined elsewhere includes a declaration for that name.  
+A **definition** creates the associated entity.  
+A variable definition is a declaration.  
+In addition to specifying the name and type (what a declaration does),
+a definition also allocates *storage* and may provide an *initial value*.  
+
+To obtain a declaration that is not also a definition, we add *extern* keyword and may not provide an explicit initializer.  
+Any declaration that includes an explicit initializer is a definition, which overrides the extern.
+
+Variables must be defined *once* but can be declared *many times*.
+
+C++ is a **statically typed** language: *type checking* occurs at *compile time*.  
+A static type checking can help find bugs, but requires the type of every entity used known to the compiler,
+i.e. declared before used.
+
+**Identifier**:
+* make up a name.
+* can be composed of letter, digits and the underscore character.
+* has no limit on length.
+* is case-sensitive.
+* A set of names are reserved.
+
+The identifiers we define in our own programs **may not**:
+* contain two consecutive underscores.
+* begin with an underscore followed immediately by an uppercase letter.
+* begin with an underscore if defined outside a function.
+
+Conventions for variable names:
+* An identifier should give some indication of its meaning.
+* Variable names normally are lowercase.
+* Class we define usually begin with an uppercase letter.
+* Identifiers with multiple words should visually distinguish each word.
+
+**Scope** is the portion of a program in which names have meaning:
+* global scope: names defined outside any other scope.  
+  Once declared, names at the global scope are accessible throughout the program.
+* class scope: names defined inside a class namespace.
+* block scope: names defined inside a block.
+
+Names are *visible* from the point where they are declared
+until the end of the scope in which the declaration appears.
+
+Define variables **where you first use them**:
+* Improve readability.
+* Easier to give initial value.
+
+Scopes can **nest**:
+* The nested scope is referred to as an inner scope.
+* The containing scope is referred to as an outer scope.
+* Once a name has been declared in a scope, that name can be used by nested scoped.
+* Names declared in the outer scope can also be redefined in an inner scope.
+* However, it's always a bad idea to define a local variable with the same name as a global variable that the function uses or might use.
+
+
+### 2.3 Compound Types
+
+A **compound type** is a type that is defined in terms of another type.
+
+A *declaration* is a *basic type* followed by a list of *declarators*.  
+Each declarator names a variable and gives the variable a type that is related to the base type.
+
+A **reference** defines an alternative name for an object:
+* We define a reference type by writing a declarator of the form *&d*.
+* When we define a reference, we *bind* the reference to its initializer.  
+* Once initialized, a reference *remains bound to* refer to its initial object.
+  There is **no way** to rebind a reference to refer to a different object.
+  So references **must** be initialized.
+  
+A reference is **not** an object but just another name for an already existing object.  
+After a reference has been defined, **all operations** on that reference are actually operations on the object to which the reference is bound.
+
+Because references are not objects, we may **not** define a reference to a reference.
+But it's not an error.
+Instead, it is bound to the object the reference is bound.
+
+A reference can't be bound to a literal or the result of a more general expression. It's an error.
+
+A **pointer** is an **object** that can hold the address of an object,
+the address one past the end of an object, or zero.
+
+Pointers defined at block scope have undefined value if they are not initialized.
+
+References do not have addresses, so we may not define a pointer to a reference.
+
+The value (i.e. the address) stored in a pointer can be in one of four states:
+* It can point to an object.
+* It can point to the location just immediately past the end of an object.
+* It can be a null pointer, indicating that it is not bound to any object.
+* It can be invalid: value other than the preceding three are invalid.
 
