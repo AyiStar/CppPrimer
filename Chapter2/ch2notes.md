@@ -274,3 +274,192 @@ The value (i.e. the address) stored in a pointer can be in one of four states:
 * It can be a null pointer, indicating that it is not bound to any object.
 * It can be invalid: value other than the preceding three are invalid.
 
+The result of accessing an invalid pointer is undefined.  
+Although pointers in case 2 and 3 above are valid, they do not point to any object,
+so if we try to access an object through such pointers, the behavior is also undefined.
+
+In declarations, & and * are used to form compound types.  
+In expressions, these same symbols are used to denote an operator.  
+It can be helpful to *ignore appearances* and think of them as if they were *different symbols*.
+
+Ways to obtain a null pointer:
+```C++
+int *p1 = nullptr;
+int *p2 = 0;
+int *p3 = NULL; // must include cstdlib
+```
+The most direct approach is using the literal nullptr.  
+nullptr is a literal that has a *spacial type* that can be converted to any other pointer type.
+
+Modern C++ program should *avoid using NULL* and *use nullptr* instead.
+
+It is illegal to assign an int variable to a pointer **even if the variable's value is 0**.
+
+Initialize **all pointers**.  
+If possible, define a pointer *only after the object to which it should point has been defined*.
+If there is no object to bind to a pointer, then initialize the pointer to nullptr.
+
+When we use a pointer in a condition, the condition is false only if the pointer is 0,
+and any nonzero pointer evaluates as true.
+
+Given two *valid pointers of the same type*, we can *compare* them:  
+Two pointers are equal if they hold the same address and unequal otherwise.
+
+**void*** is a special pointer type that can hold the address of **any object**.  
+There are only limited things we can do with them:
+* Compare it to another pointer.
+* Pass it to or return it from a function.
+* Assign it to another void* pointer.
+* **CANNOT** use it to operate on the object it address because the type is unknown.
+* Generally, use it to *deal with memory as memory*, rather than using the pointer to access the object stored in that memory.
+
+The type modifier, which is a part of a declarator,
+**does not** apply to all the variables defined in a single statement.
+
+There are two common styles used to define multiple variables with pointer or reference type:
+* Place the type modifier adjacent to the identifier.  
+  This style emphasizes that the variable has the indicated compound type.
+* Place the type modifier with the type but defines only one variable per statement.  
+  This style emphasizes that the declaration defines a compound type.
+  
+It can be easier to understand complicated pointer or reference declarations
+if you read them form right to left.
+```C++
+int *p = nullptr; // is a pointer to int
+int *&r = p; // is a reference to a pointer to int
+int **pp = &p; // is a pointer to a pointer to int
+```
+
+
+### 2.4 const Qualifier
+
+**const** is a *type qualifier* used to define objects that may not be changed.  
+Const objects must be initialized, because we can't change it after we define it.
+
+A const type can use *most but not all* of the same operations as its nonconst version:
+* We may use only those cannot change an object.
+* When we use an object to initialize another object, it does not matter whether either or both are consts.
+
+By default, const objects are **local to file**,
+because compile has to substitute the value for the variable during compilation.
+  
+Sometimes we have a const variable that we want to share across files but whose initializer is not a const expression,
+i.e. we don't want the compiler to generate a separate variable in each file.  
+We want to define the const in one file and declare it in other files.  
+We use keyword *extern* on both its definition and declarations.
+
+A **reference to const** is a reference that refers to a const type.  
+A reference to const cannot be used to change the object to which the reference is bound.
+```C++
+const int ci = 42;
+const int &r1 = ci; // ok
+r1 = 0; // error
+int &r2 = ci; // error
+```
+
+const reference is just an abbreviation to a reference to const.  
+In fact, a reference is not an object so it cannot be const.  
+Or in a sense, all references are "const".
+
+There are two exceptions to the rule that the type of a reference must match the type of the object to which it refers,  
+here is the first one:
+* We can initialize a reference to const from any expression that can be converted to the type of the reference.  
+  In particular, we can bind a reference to const to a nonconst object, or a more general expression.
+* A reference can be bound to a temporary object, which is an unnamed object created by the compile
+  when it needs a place to store a result from evaluating an expression.
+* If a reference which is bound to a temporary is not const,
+  the temporary can be changed through the reference, but it makes no sense,
+  because why not use a variable instead?
+  So C++ *makes it illegal*.
+* A reference to const restrict only what we do *through that reference*,
+  so a reference to const may refer to an object that is not const itself.  
+  In that case, we can change the value through the object itself but
+  cannot through the reference.
+  
+A **pointer to const** is a pinter that holds the address of a const object,
+and may not be used to change the value of the object to which it points.
+```C++
+const double pi = 3.14;
+double *p = &pi; // error
+const double *cp = &pi; // ok
+*cp = 4.0; // error
+```
+
+Like a reference to const, a pointer to const **says nothing about
+whether the object to which it points is const**.  
+Define a pinter to const **affects only what we can do with the pointer**.  
+There is **no guarantee** that an object pointed to by a pinter to const won't change.
+
+It is helpful to think of pointers and references to const as
+pointers or references that **think** they point to refer to const.
+
+A **const pointer** is indicated by putting the const *after* the *.  
+This placement indicates that it is the **pointer**, not the **point-to** type, that is const.
+```C++
+int i = 0;
+int *const p = &i; // p is a const pointer
+```
+
+The fact that a pointer is itself const says **noting about
+whether we can use the pointer to change the underlying object**.  
+Instead, it depends entirely on the type to which the pointer points.
+
+We use the term **top-level const** to indicate that the pointer itself is a const.  
+When a pointer can point to a const object, we refer to that const as a **low-level** const.  
+Top-level const can appear in *any* object type.  
+Low-level const appears in the base type of compound types such as pointers and references.
+
+Note:
+```C++
+const int i = 42, &ri = i;
+// it's ok, and equal to
+const int i = 42;
+const int &ri = i;
+```
+
+The distinction between top-level and low-level matters when copying objects.  
+Top-level consts are ignored, while low-level consts is never ignored.  
+Copying an object does not change the copied object,
+so it is immaterial whether the object copied from or copied into is const.  
+But both objects must have the same low-level const qualification
+or there must be a convention between the types of the two objects.
+
+A **constant expression** is an expression whose value cannot change
+and that can be evaluated at compile time.  
+Whether a given object or expression is a constant expression depends on
+the types and the initializers.
+```C++
+const int max_files = 20; // max_files is a constant expression
+const int limit = max_files + 1; // limit is a constant expression
+int staff_size = 27; // staff_size is not a constant expression because it is a plain int
+const int sz = get_size(); // sz is not a constant expression because the initializer is not known until run time
+```
+
+In C++11, we can ask the compiler to verify that a variable is a constant expression
+by declaring the variable in a **constexpr** declaration.  
+Variables declared as a constexpr are implicitly const and must be initialized by constant expressions.
+```C++
+constexpr int mf = 20; // ok
+constexpr int limit = mf + 1; // ok
+constexpr int sz = size();  // ok only if size is a constexpr function
+```
+C++11 lets us define certain functions as constexpr.  
+Such functions must be simple enough that the compiler can evaluate them at compile time.
+
+It is a good idea to use constexpr for variables that you intend to use as constant expressions.
+
+The types we can use in a constexpr declaration are known as "**literal types**"
+because they are simple enough to have literal values.
+* The arithmetic, reference and pointer types are literal types.
+* Class types and the library IO and string types are not literal types.
+
+We can initialize a constexpr pointer with nullptr literal, literal 0 or the address of an object that remains at a fixed address:
+* The variables defined inside a function ordinarily are not stored at a fixed address.  
+* The address of an object defined outside of any function is a constant expression.  
+* The functions may also define variables that exist across calls to that function, which have fixed addresses.
+
+When we define a pointer in a constexpr declaration, the constexpr specifier
+applies to the **pointer**, not the type to which the pointer points.  
+So constexpr imposes a top-level const on the objects it defines.
+
+### 2.5 Dealing with Types
