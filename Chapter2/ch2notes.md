@@ -463,3 +463,166 @@ applies to the **pointer**, not the type to which the pointer points.
 So constexpr imposes a top-level const on the objects it defines.
 
 ### 2.5 Dealing with Types
+
+Complications in using types:
+* Some types have forms that are tedious and error-prone,
+  or can obscure its purpose or meaning.
+* Sometimes it's hard to determine the exact type we need.
+
+A **type alias** is a name that is a synonym for another type,
+and can appear wherever a type name can appear:
+* Declarations including *typedef* keyword define type alias.  
+* C++11 introduces alias declaration, which starts with the keyword
+  *using* followed by the alias name and an =.  
+  The alias declaration defines the name on the left-hand side of the =
+  as an alias for the type that appears on the right-hand.
+```C++
+typedef double wages;
+using wages = double;
+```
+
+It can be tempting , albeit incorrect, to interpret a declaration that uses a type alias
+by conceptually replacing the alias with its corresponding type:
+```C++
+typedef char *pstring; // pstring is a pointer to char
+const pstring cstr = 0; // cstr is a constant pointer to char, rather than a pointer to const char
+const pstring *ps; // ps is a pointer to a constant pointer to char
+```
+The **base type** in the declarations above is const pstring.
+A const that appears in the base type modifies the given type.
+```C++
+const pstring cstr; // the base type is pstring
+const char *cstr; // the base type is char and the * is  part of the declarator
+```
+
+Under C++11, we can let the **compiler** figure out the type
+by using **auto** type specifier.  
+auto tells the compiler to deduce the type from the *initializer*.  
+A variable that uses auto must have an initializer.
+
+We can define multiple variables whose initializers' types are consistent with each other (the same *base type*)
+in a single declaration using auto.
+```C++
+auto i = 1, *p = &i; // ok
+auto sz = 0, pi = 3.14; // error
+```
+
+The type that the compiler infers for auto is *not always*
+the same as the initializer's type:
+* When using a reference as an initializer, the compiler uses that corresponding object's type
+  for auto's deduction.
+* auto originally ignores top-level const but keeps low-level const.
+* If we want the deduced type to have a top-level const, we must say explicitly.
+* We can also specify that we want a reference to the auto-deduced type.
+  When we ask for a reference to an auto-deduced type, top-level consts are not ignored.
+```C++
+int i = 0, &r = i;
+auto a = r; // a is an int
+
+const int ci = i, &cr = ci;
+auto b = ci; // b is an int
+auto c = cr; // c is an int
+auto d = &i; // d is an int*
+auto e = &ci; //e is const int*
+
+const auto f = ci; // deduced type of ci is int; f has type const int
+
+auto &g = ci // g is a const int& that is bound to ci
+auto &g = 42; // error: we can't bind a plain reference to a literal
+const auto &j = 42; // ok
+```
+
+**decltype** is a type specifier that returns the type of its operand.  
+The compiler analyzes the expression to determine its type but does not evaluate the expression.
+```C++
+decltype(f()) sum = x; // sum has whatever type of f returns
+// the compiler does not call f but uses the type f returns
+```
+
+When the expression to which we apply decltype is a variable,
+decltype returns the type of that variable, including top-level const and reference.
+When the variable is a reference, the returned type is bound to the object the variable is bound to.
+When the expression is not a variable, we get the type that expression yields.
+
+decltype is the *only context* in which a variable defined as a reference
+is **not** treated as a synonym for the object to which it refers.
+
+Generally, decltype returns a reference type for expressions that
+yield objects that can stand on the left-hand side of the assignment.
+```C++
+int i = 42, *p = &i, &r = i;
+decltype(r) a ; // a is a reference to i 
+decltype(r + 0) b; // b is an int
+decltype(*p) c; // error: c is int& and must be initialized
+```
+
+The dereference operator is an example of an expression for which
+decltype returns a reference.
+
+When we apply decltype to a variable without any parentheses, we get the type of that variable.  
+If we wrap the variable's name in one or more sets of parentheses, the compiler will evaluate the operand as an expression.  
+A variable is an expression that can be the left-hand side of an assignment,
+so decltype on such an expression yields a reference.
+```C++
+int i = 42;
+decltype((i)) d; // error: d is int& and must be initialized
+decltype(i) e; // ok: e is an int
+```
+decltype((*variable*)) is always a reference type,  
+but decltype(*variable*) is a reference only if *variable* is a reference.
+
+The type of an assignment expression is a **reference** to
+the type of the **left-hand** operand.  
+If *i* is an int, then i = 42 is int&.
+
+
+
+### 2.6 Defining Our Own Data Structures
+
+Ordinarily, it's a **bad idea** to define an object as part of a class definition.
+
+The *data members* define the contents of a class type.
+Every object has its own copy of the class data members.
+
+Under C++11, we can supply an **in-class initializer** for a data member.
+When we create objects, the in-class initializers will be used to initialize the data members.
+Members without an initializer are default initialized.  
+In-class initializers must either be enclosed inside curly braces or follow an = sign,
+and may not be inside parentheses.
+
+The *string* type holds a sequence of characters.  
+Its operations include the >>, <<, and == operators to read, write and compare strings, respectively.
+
+Class can be defined inside a function, but such classes have limited functionality.  
+Typically, classes are stored in headers whose name derives from the name of the class.  
+
+Headers (usually) contain entities that can be defined only once in any given file,
+such as class definitions and const and constexpr variables.  
+Headers often need to use facilities from other headers, so a header might be included more than once.
+Thus, we need to write headers in a way that is safe even if the header is included multiple times.
+
+**header guard**: preprocessor variable used to prevent a header from being included more than once in a single file.  
+Preprocessor variables have one of two possible states: defined or not defined.  
+\#define takes a name and defines it as a preprocessor variable.  
+\#ifdef is true if the variable has been defined.  
+\#ifndef is true if the variable has not been defined.  
+\#endif matches #ifdef or #ifndef.
+
+We can guard against multiple inclusion as follows:
+```C++
+#ifndef XXX_H
+#define XXX_H
+... ...
+#endif
+```
+* Preprocessor variables names **do not** respect C++ scoping rules.  
+* Preprocessor variables must be unique **throughout the program**.  
+* Typically we ensure that by basing the guard's name on the name of a class in the header.  
+* Preprocessor variables usually are written in all uppercase.
+
+Headers should **always have guards**.
+
+
+
+### Chapter Summary
+
