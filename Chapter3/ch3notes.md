@@ -205,4 +205,131 @@ A **vector** is a collection of objects, all of which *have the same type*.
 Every object in the collection has an associated index, which gives access to that object.  
 A vector is often referred to as a **container**.
 
-vector is in header <vector>, namespace std.  
+vector is in header <vector>, namespace std.
+
+vector is a **class template**.  
+C++ has both *class and function templates*.  
+A class template is a blueprint from which specific class types can be created.
+
+Templates can be thought of as instructions to the compiler for generating classes or functions.  
+The process that the compiler uses to create classes or functions from templates is called **instantiation**.
+
+For a class template, we specify with class to instantiate by
+supplying additional information.  
+In detail, we supply it inside a pair of angle brackets following the template's name.
+```C++
+vector<int> ivec;
+vector<Sales_item> Sales_vec;
+vector<vector<string>> file;
+```
+
+vector is **not a type** but a template.
+
+We **cannot** have a vector of *references* because they are not objects.
+
+Some compilers may require the old-style declarations for a vector of vectors,
+for example, vector<vector<int> >, rather than vector<vector<int>>.
+
+The most common ways to define vectors:
+* vector<T> v1: default initialization, v1 is empty.
+* vector<T> v2(v1): v2 has a copy of each element in v1.
+* vector<T> v2 = v1: equivalent of vector<T> v2(v1).
+* vector<T> v3(n, val): v3 has n elements of type T with value val.
+* vector<T> v4(n): v4 has n copies of a value-initialized object.
+* vector<T> v5(a,b,c...): v5 has as many elements as there are initializers; elements are initialized by corresponding initializers.
+* vector<T> v5 = (a,b,c...): equivalent to v5(a,b,c...).
+
+Indeed, the most common way of using vectors is to
+define an initially empty vector to which elements are added as their values become known at run time.
+
+In C++11, we can *list initialize* a vector from a list of zero or more initial element values enclosed in curly braces.
+```C++
+vector<string> artivles = {"a", "an", "the"};
+```
+
+* When we use the copy initialization form (=), we can supply only a single initializer.
+* When we supply an in-class initializer, we must either use copy initialization or usr curly braces.
+* We can supply a list of element values only by using list initialization, not using parentheses.
+```C++
+vector<string> v1{"a", "an", "the"}; // ok
+vector<string> v2("a", "an", "the"); // error
+```
+
+**value initialization** is a kind of initializations in which
+built-in types are initialized to zero and
+class types are initialized by the class's default.
+
+There are two restrictions on this form of initialization:
+* Some classes require an explicit initializer.
+  If our vector holds objects of a such type,
+  it is impossible to create vectors of such types by supplying only a size.
+* When we supply an element count without also supplying an initial value,
+  we must use the direct from of initialization:
+```C++
+vector<int> vi = 10;
+// error: must use direct initialization to supply a size
+```
+
+In a few cases, what initialization means depends on whether we use curly braces or parentheses to pass the initializer(s):
+```C++
+vector<int> v1(10); // v1 has ten elements with value 0
+vecter<int> v2{10}; // v2 has one element with value 10
+vecter<int> v3(10,1); // v3 has ten elements with value 1
+vecter<int> v4{10,1}; // v4 has two elements with value 10 and 1
+```
+
+If we use braces and there is no way to use the initializers to list initialize the object,
+then those values will be used to construct the object.  
+If list initialization isn't possible, the compiler looks for other way to initialize the object from the given value.
+``` C++
+vector<string> v5{"hi"}; // list initialization: v5 has one element
+vector<string> v6("hi"); // error: can't construct a vector from a string literal
+vector<string> v7{10}; // v7 has ten default-initialized elemenets
+vector<string> v8{10, "hi"}; // v8 has ten elements with valu "hi"
+```
+
+The *push_back* operation takes a value and "pushes" that value
+as a new **last** element onto the "back" of the vector.
+``` C++
+vector<int> v2;
+for(int i = 0; i < 100; i++){
+    va.push_back(i);
+}
+```
+
+The standard requires that vector implementations can **efficiently** add elements at run time.
+Moreover, vectors offers capabilities to allow us to further enhance run-time performance when we add elements.  
+Starting with an empty vector and adding elements at run time is distinctly different from
+how we use built-in arrays in C and in most other languages.
+
+We must ensure that any loops we write are correct even if the loop changes the size of the vector.  
+We cannot use a range for if the body of the loop adds elements to the vector.
+
+vector provides only a few operations, here are the most important ones:
+* v.empty(): return true if v is empty, false otherwise.
+* v.size(): return the number of elements in v.
+* v.push_back(t): add an element with value t to end of v.
+* v[n]: return a reference to the element at position n in v.
+* v1 = v2: replace the elements in v1 with a copy of elements in v2.
+* v1 = {a,b,c...}: replace the elements in v1 with a copy of the elements in the comma-separated list.
+* v1 == v2: return true if v1 and v2 have the same numbers of elements and each of them is equal.
+* v1 != v2: return true if v1 == v2 is not true.
+* <, <=, >, >=: have their normal meanings using directory ordering.
+
+We can use a range for to process all the elements in a vector.
+``` C++
+for(auto &i : v){
+    i *= i;
+}
+```
+
+vector<T>::size() returns a value of the size_type defined by the corresponding vector type.  
+To use size_type, we must name the type in which it is defined.
+``` C++
+vector<int>::size_type; // ok
+vector::size_type; // error
+```
+
+We can compare two vectors **only if** we can compare the elements in those vectors.
+
+
