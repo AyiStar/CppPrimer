@@ -199,4 +199,10 @@ The value in the subscript is referred to as a *subscript* or an *index*.
 && evaluates its right-hand operand *only if* the left-hand operand is true.
 
 
+### 3.3 Library *vector* type
 
+A **vector** is a collection of objects, all of which *have the same type*.  
+Every object in the collection has an associated index, which gives access to that object.  
+A vector is often referred to as a **container**.
+
+vector is in header <vector>, namespace std.  
