@@ -332,4 +332,261 @@ vector::size_type; // error
 
 We can compare two vectors **only if** we can compare the elements in those vectors.
 
+The subscript operator on vector and string *fetches* an **existing** element;
+it does not add an element.  
+It is an error to subscript an element that does not exist.
 
+
+
+### 3.4 Introducing Iterators
+
+**iterator** is a type used to access and navigate among the elements of a *container*.
+
+All of the library containers have iterators, but only a few of them support the subscript operator.
+
+Technically speaking, a string is **not a container type**,
+but string supports many of the container operations.
+
+An iterator may be valid or invalid:
+* A valid iterator either denotes an element or denotes a position one past the last element in a container.
+* All other iterator values are invalid.
+
+Types that have iterators have *members that return iterators*.  
+In particular, these types have members named *begin* and *end*.  
+
+The begin member returns an iterator that denotes the first element, if there is one. 
+``` C++
+auto b = v.begin();
+auto e = v.end();
+```
+
+The end member returns an iterator positioned one past the end of the associated container.
+It denotes a nonexistent element and is used as a marker indicating when we have processed all the elements.  
+The iterator returned by end is often referred to as the **off-the-end iterator** or "the end iterator".
+
+If the container is empty, begin returns the same iterator as the one returned by end.
+They are both off-the-end iterator.
+
+In general, we **do not know or care about** the precise type that an iterator has.
+
+Iterators support only a few operations, which are listed here:
+* \*iter: return a reference to the element denoted by iter.
+* iter->mem: dereference iter and fetch the member named mem from the underlying element.
+  Equivalent to (\*iter).mem.
+* ++iter: increment iter to refer to the next element in the container.
+* --iter: decrement iter to refer to the previous element in the container.
+* iter1 == iter2: return true only if iter1 and iter2 denote the same element 
+  or if they are the off-the-end iterator for the same container.
+* iter1 != iter2: return true if iter1 == iter2 is false.
+
+Dereferencing an invalid iterator or an off-the-end iterator has undefined behavior.
+
+Example:
+``` C++
+string s("some thing");
+if(s.begin() != s.end()){
+    auto it = s.begin();
+    *it = toupper(*it);
+}
+```
+
+```C++
+string s("some thing");
+for(auto it = s.begin(); it != s.end() && !isspace(*it); ++it)
+{
+    *it = toupper(*it);
+}
+```
+
+C++ programmers use != as a matter of habit.
+This coding style applies equally well to various kinds of containers provided by the library.  
+All of the library containers have iterators that define == and != operations.
+Most of those iterators do not have the \< operator.
+
+The library types that have iterators define types named *iterator* and *const_iterator*
+that represent actual iterator types.
+``` C++
+vector<int>::iterator it; // can read and write vector<int> elements
+string::iterator it2; // can read and write characters in a string
+vector<int>::const_iterator it3; // can read but not write elements
+string::const_iterator it4; // can read but not write elements
+```
+A const_iterator may read but not write the element it denotes, like a const pointer.
+If a container is const, we may use only its const_container.
+With a nonconst container, we can use either iterator or const_iterator.
+
+The term *iterator* is used to refer:
+* the concept of an iterator.
+* the iterator type defined a container.
+* an object as an iterator.
+
+*A type is an iterator* if it supports a common set of actions.
+Those actions let us access an element in a container and let us move from one element to another.  
+Each container class defines *a type named iterator*, which supports the actions of an (conceptual) iterator.
+
+If the object is const, begin and end return a const_iterator,
+otherwise, they return iterator.
+``` C++
+vector<int> v;
+const vector<int> cv;
+auto it1 = v.begin(); // it1 has type vector<int>::iterator
+auto it2 = v.begin(); // it2 has type vector<int>::const_iterator 
+```
+
+It is usually best to use a const type when we need to read but do not need to write to an object.  
+To let us ask specifically for the const_iterator, C++11 introduced two new functions:
+cbegin and cend. These members return iterators to the first and one past the last element in the container,
+but regardless of whether the container is const, they return a const_iterator.
+
+The parentheses in (*iter).mem are necessary.  
+To simplify the expressions such as this one, -> operator is defined.
+iter->mem is a synonym for (*iter).mem.
+
+Any operation, such as push_back, that *changes the size of a vector*
+potentially *invalidates all iterators into that vector*.  
+Loops that use iterators should not add elements to the container to which the iterator refer.
+
+All the library containers have iterators that support increment.  
+Iterators for string and vector support additional operations
+that can move an iterator *multiple* elements at a time.  
+These operations, including all the relational operations, are often referred to as *iterator arithmetic*.
+* iter +/- n: yield an iterator that many elements forward (backward) within the container.
+  The resulting iterator must denote elements in, or one past the end, of the same container.
+* iter +=/-= n: compound-assignment for iterator addition and subtraction.
+* iter1 - iter2: yield the number that when added to iter2 yields iter1.
+  The iterators must denote elements in, or one past the end of, the same container.
+* \>, \>=, \<, \<=: One iterator is less than another if is refers to an element that appears in the container before the one referred to by the other iterator.
+  The iterators must denote elements in, or one past the end of, the same container.
+
+Examples:
+``` C++
+// compute an iterator to the element closest to the midpoint of vi
+auto mid = vi.begin() + vi.size() / 2;
+```
+
+The subtraction between iterators of vectors or strings returns
+a signed integral type named *difference_type*.
+
+An example of doing *binary search* using iterators:
+``` C++
+// text must be sorted
+// beg and end will denote the range we're searching
+auto beg = text.begin(), end = text.end();
+auto mid = text.begin() + (end - beg) / 2; // original midnight
+
+// while there are still elements to look at and we haven't yet found sought
+while(mid != end && *mid != sought)
+{
+    if(sought < *mid) // is the element we want in the first part?
+        end = mid; // if so, adjust the range to ignore the second part
+    else // the element we want is in the second half
+        beg = mid + 1; // start looking with the element just after mid
+    
+    mid = beg + (end - beg) / 2; // new midpoint
+}
+```
+
+\*(iter)++ is **different from** (*(iter))++ !
+
+
+
+### 3.5 Arrays
+
+An array is a data structure that is similar to the library vector type,
+but *offers a different trade-off between performance and flexibility*.
+
+An array is a **container** of unnamed objects of a single type that we access by position.
+
+Arrays have **fixed size**. We **cannot add elements** to an array.  
+Because of that, they sometimes offer *better run-time performance* for specialized applications.
+
+If you don't know exactly how many elements you need, **use a vector**.
+
+Arrays are a **compound type**.
+
+An array declarator has the form a[d], where a is the name and d is the *dimension*.  
+The dimension must be known at *compile time*, which means that the dimension must be a *constant expression*.
+``` C++
+unsigned cnt = 42; // not a constant expression
+constexpr unsigned sz = 42; // constant expression
+int arr[10]; // array of ten ints
+int *parr[sz]; // array of 42 pointers to int
+string bad[cnt]; // error: cnt is not a constant expression
+string strs[get_size()]; // ok if get_size is constexpr, error otherwise
+```
+
+By default, the elements in an array are default initialized.  
+As with variables of built-in type, a default-initialized array of built-in type
+that is defined inside a function will have undefined values.
+
+We cannot use auto to deduce the type from a list of initializers for an array.
+We must specify a type for it.
+
+Arrays hold only objects, so there are no arrays of references.
+
+We can list initialize the elements in an array:
+* We can omit the dimension, and then the compiler infers it from the number of initializers.
+* If we specify a dimension, the number of initializers must not exceed the specified size.
+* If the dimension is greater than the number of initializers, the initializers are used for the first elements
+  and the remaining elements are value initialized.
+  
+Character arrays have an additional form of initialization:
+* We can initialize such arrays from a string literal.
+* When using this form, string literals end with a null character, copied into the array along with the characters.
+
+We **cannot** initialize any array as a copy of another array,
+**nor** is it legal to assign one array to another.  
+Some compilers allow array assignment as a *compiler extension*,
+but it is usually best to avoid nonstandard features.
+
+Defining arrays that hold pointers is fairly straightforward,
+defining a pointer or reference to an array is a bit more complicated.
+``` C++
+int *ptrs[10]; // an array of ten pointers to int
+int &refs[10] = /* ? */; // error: no arrays of references
+int (*Parray)[10] = &arr; // a pointer to an array of ten ints
+int (&arrRef)[10] = arr; // a reference to an array of ten ints
+```
+
+By default, type modifiers bind **right to left**.
+When using parentheses, they bind **inside to outside**.  
+There are no limits on how many type modifiers can be used.
+``` C++
+int *(&arry)[10] = ptrs; // a reference to an array of ten pointers to int.
+```
+
+We can use a *range for* or the *subscript operator* to access elements of an array.
+
+When we use a variable to subscript an array, we normally should define that variable to have type
+**size_t**, which is a machine-specific *unsigned type* that is **guaranteed to be large enough to hold the size of any object in memory**.  
+The type size_t is defined in the **cstddef** header.
+
+As in the case of string or vector, it is best to use a range for
+when we want to traverse the entire array.
+
+The most common source of security problems are *buffer overflow* bugs.
+Such bugs occur when a program fails to *check a subscript* and 
+mistakenly *uses memory outside the range* of an array or similar data structure.
+
+In C++, pointers and arrays are closely intertwined:
+* When we use an array, the compiler ordinarily *converts the array to a pointer*.
+* Normally, we obtain a pointer to an object by using &.
+  Generally speaking, & may be applied to any object.
+* The element in an array are objects.
+  When we subscript an array, the result is the object at that location in the array.
+* Arrays have a special property: in most places when we use an array,
+  the compiler automatically substitutes a pointer to the first element.
+``` C++
+string *p2 = nums; // equivalent to p2 = &nums[0]
+```
+
+When we use an array as an initializer for a variable defined using auto,
+the deduced type is a **pointer**, not a **array**.
+``` C++
+int ia[] = {0,1,2,3,4,5,6,7,8,9};
+auto ia2(ia); // ia2 is an int* that points to the first element in ia
+// equivalent to
+// auto ia2(&ia[0])
+```
+This conversion **does not** happen when we use *decltype*.  
+The type returned by decltype(ia) is array of ten ints.
