@@ -590,3 +590,217 @@ auto ia2(ia); // ia2 is an int* that points to the first element in ia
 ```
 This conversion **does not** happen when we use *decltype*.  
 The type returned by decltype(ia) is array of ten ints.
+
+Pointers to array elements support the same operations as iterators,
+such as increment operator.
+
+We can use pointers as iterators to traverse the elements in an array.
+
+The new library includes two functions named begin and end.
+These functions act like the similar named container members.  
+However, arrays are not class types, so these functions are not member functions.
+Instead, they take an argument that is an array.
+``` C++
+int ia[] = {0,1,2,3,4,5,6,7,8,9};
+int *beg = begin(ia); // pointer the first element in ia
+int *last = end(ia); // pointer ons psat the last element in ia
+```
+These functions are defined in the header *\<iterator\>*.
+
+// The introduction to the pointer arithmetic is omitted.
+
+Pointer arithmetic is also valid for *null pointers* and for pointers that point to an object that is not any array.  
+If p is a null pointer, we can add or subtract an *integral constant expression* whose value is **0** to p.  
+We can also subtract two null pointers from one another, in which case the result is 0.
+
+The parentheses in \*(p + 1) is essential.
+
+When we subscript an array, we are really subscripting a pointer to an element in that array.
+``` C++
+int i = ia[2]; // equivalent to int i = *(ia + 2);
+```
+
+We can use the subscript operator on any pointer, as long as the pointer points to an element in an array.
+``` C++
+int *p = &ia[2];
+int j = p[1];
+int k = p[-2]; // p[-2] is the same element as ia[0]
+```
+There is an important difference between arrays and library types such as vector and string that have subscript operators.  
+The library types force the index used with a subscript to be an **unsigned value**.  
+The built-in subscript operator **does not**. The index used with the built-in subscript operator can be a negative value.
+
+Although C++ supports C-style strings, they **should not** be used by C++ programs.
+They are a surprisingly rich source of bugs and are the root cause of many security problems,
+and also hard to use.
+
+C-style character strings are **not a type**, but a *convention for how to represent and use character strings*.  
+Strings that follow this convention are stored in character arrays and are *null terminated*.  
+Ordinarily we use pointers to manipulate these strings.
+
+There are a set of functions defined in the header \<cstring\>.  
+The pointers passed to these functions must point to **null-terminated** array(s).  
+The functions do not verify their string functions.
+
+For most applications, in addition to being safer, it is also more **efficient**
+to use library strings rather than C-style strings.
+
+Programs written in modern C++ may have to interface to code that uses
+arrays and/or C-style character strings.
+The C++ library offers facilities to make the interface easier to manage.
+
+We can use a null-terminated character array **anywhere that we can use a string literal**:
+* To *initialize* or *assign* a string.
+* As one operand (but not both operands) to the *string addition* operator or
+  as the right-hand operand in the *string compound* assignment operator.
+
+The reverse functionality is not provided:
+There is no direct way to use a library string when a C-style string is needed.  
+However, there is a string member function **c_str()** that we can use to accomplish what we want.
+``` C++
+string s("Hello!");
+char *str = s; // error: can't initialize a char* from a library string
+const char *str = s.c_str(); // ok
+```
+c_str() returns a C-style character string.
+That is, it returns a pointer to the beginning of a null-terminated character array
+that holds the same data as the characters in the string.
+The type of the pointer is const char*, which prevents us from changing the contents of the array.
+
+The array returned by c_str is **not guaranteed** to be valid indefinitely.
+Any subsequent use of s that might change the value of s can invalidate this array.
+
+If a program needs continuing access to the contents of the array returned by c_str(),
+the program must **copy** the array returned by c_str.
+
+We can use an array to initialize a vector.  
+``` C++
+int int_arr[] = {0,1,2,3,4,5};
+vector<int> ivec(begin(int_arr), end(int_arr));
+```
+We specify the address of the first and one past the last element that we wish to copy.  
+The two pointers used to construct ivec mark the range of values to use to initialize the elements in ivec.  
+The specified range can also be a subset of the array.
+``` C++
+vector<int> subVec(int_arr + 1, int_arr + 4);
+```
+
+Use library types instead of arrays!  
+Pointers and arrays are surprisingly error-prone.
+Modern C++ programs should use vectors and iterators instead of built-in types and pointers,
+and use strings rather than C-style array-based character strings.
+
+Strictly speaking, there are no multidimensional arrays in C++.
+What are commonly referred to as multidimensional arrays are actually *arrays of arrays*.
+
+We define an array whose elements are arrays by providing two dimensions:
+the dimension of the array itself, and the dimension of its elements.
+``` C++
+int ia[3][4]; // array of size 3; each element is an array of ints of size 4
+int arr[10][20][30]; // array of size 10; each element is a 20-element array whose elements are arrays of 30 ints
+```
+
+In a two-dimensional array, the first dimension is usually referred to as the row and the second as the column.
+
+Multidimensional arrays can be initialized by a bracketed list of initializers.  
+They may be initialized by specifying bracketed values for each row with (optional) nested brackets.
+
+We can use a subscript to access the element of multidimensional arrays.
+To do so, we use a separate subscript for each dimension:
+* If an expression provides as many subscripts as there are dimensions,
+  we get an element with the specified type.
+* If we supply fewer subscripts than there are dimensions,
+  then the result is the inner-array element at the specified index.
+
+It is common to use *nested for loops* to process the elements in a multidimensional array.
+
+Under C++11 we can use a range for with multidimensional arrays.
+``` C++
+size_t  cnt = 0;
+for(auto &row : ia) // for every element in the outer array
+{
+    for(auto &col : row) // for every element in the inner array
+    {
+        col = cnt;
+        cnt++;
+    }
+}
+```
+
+Consider the following loop:
+``` C++
+for (const auto &row : ia) // for every element in the outer array
+    for (auto col : row)
+        cout << col << endl;
+```
+This loop does not write to the elements, yet we still define the control variable of the outer loop as a reference.  
+We do so in order to *avoid the normal array to pointer conversion*.  
+Had we written as:
+``` C++ 
+for (auto row: ia)
+    for (auto col : rwo)
+```
+The program would not compile.
+The first for iterates through ia.
+Because row is not a reference, when the compiler initializes row,
+it will convert each array element to a pointer to that array's first element.  
+So the type of row is int\*. The inner for loop is illegal (we can't use a range for with a pointer).
+
+Thus, to use a multidimensional array in a range for,
+the loop control variable for *all but the innermost* array must be references.
+
+When we use the name of a multidimensional array,
+it is automatically converted to a pointer to the first element in the array.
+
+The pointer type to which the array converts is a pointer to the first inner array.
+``` C++
+int ia[3][4];
+int (*p)[4]= ia; // p points to an array of four ints
+p = &ia[2]; // p now points to the last element in ia
+```
+The parentheses in this declaration are essential:
+* int *ip[4]: array of four pointers to int
+* int (*ip)[4]: pointer to an array of four ints
+
+In C++11, we can often avoid having to write the type of a pointer
+into an array by using auto or decltype.
+``` C++
+// print the value of each element in ia
+// with each inner array on its own line
+// p points to an array of four ints
+for (auto p = ia; p != ia + 3; p++)
+{ // q points to the first element of an array of four ints
+    for (auto q = *p; q != *p + 4; q++)
+    {
+        cou << *q << ' ';
+    }
+    cout << endl;
+}
+```
+We can easily write the loop using the library begin and end functions:
+``` C++
+for (auto p = begin(ia); p != end(ia); p++)
+{
+    for (auto q = begin(*p); a != end(*p); q++)
+    {
+        cout << *q << ' ';
+    }
+    cout << endl;
+}
+```
+
+A *type alias* can make it easier to read, write, and understand pointers to multidimensional arrays.
+``` C++
+using int_array = int[4];
+// equivalent to
+// typedef int int_array[4];
+for(int_array *p = ia; p != ia + 3; p++)
+{
+    for (int *q = *p; q != *p + 4; q++)
+    {
+        cout << *q << ' ';
+    }
+    cout << endl;
+}
+```
+
