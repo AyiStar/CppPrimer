@@ -429,4 +429,144 @@ short sval;
 unsigned short usval;
 int ival;
 unsigned int uival;
-long 
+long lval;
+unsigned long ulval;
+float fval;
+double dval;
+
+a.14159L + 'a'; // 'a' promoted to int, then that int converted to long double
+dval + ival; // ival converted to double
+dval + fval; // fval converted to double
+ival = dval; // dval converted (by truncation) to int
+flag = dval; // if dval is 0, then flag is false; otherwise true
+cval + fcal; // cval promoted to int, then that int converted to float
+sval + cval; // sval and cval promoted to int
+cval + lval; // cval converted to long
+ival + ulval; // ival converted to unsigned long
+usval + ival; // promotion depends on the size of unsigned short and int
+uival + lval; // conversion depends on the size of unsigned int and long
+```
+
+There are several additional kinds of implicit conversions:
+* Arrays to pointers conversions: In most expressions, when we use an array,
+  the array is automatically converted to a pointer to the first element in that array.  
+  This conversion is not performed when:
+  * with decltype, address-of, sizeof, and typeid operators.
+  * when initialize a reference to an array.
+* Pointer conversions: A constant value of 0 and the literal nullptr can be converted to any pointer type.
+  a pointer to any nonconst type can be converted to void\*.
+* Conversions to bool: If the pointer or arithmetic value is zero, the conversion yields false, any other value yields true.
+* Conversions to const: We can convert a pointer to a nonconst type to a pointer to the corresponding const type,
+  and similarly for references.  
+  The reverse conversion -- removing a low-level const -- does not exist.
+* Conversions defined by class type: Class types can define conversions that the compiler will apply automatically.
+  The compiler will apply only one class-type conversion at a time.  
+  For example, istream to bool, C-style character string to library string.
+  
+We use a **cast** to request an explicit conversion.
+
+Although necessary at times, casts are inherently **dangerous** constructs.
+
+A **named cast** has the following form:  
+*cast-name\<type\>(expression)*  
+where *type* is the target type of the conversion, and
+*expression* is the value to be cast.  
+If *type* is a reference, then the result is the an lvalue.  
+The *cast-name* may be one of **static_cast**, **dynamic_cast**, **const_cast**, and **reinterpret_cast**.  
+The cast-name determines what kind of conversion is performed.
+* static_cast: an explicit request for a well-defined type conversion.
+  Often used to override an implicit conversion that the compiler would otherwise perform.
+* dynamic_cast: used in combination with inheritance and run-time type identification.
+* const_cast: a cast that converts a low-level const object to the corresponding nonconst type or vice versa.
+* reinterpret_cast: interpret the contents of the operand as a different type.
+
+Any well-defined type conversion, **other than** those involving low-level const,
+can be requested using a static_cast.
+
+A static_cast is often useful when a larger arithmetic type is assigned to a smaller type.  
+The cast *informs* both the reader of the program and the compiler that
+we are aware of and are not concerned about the potential loss of precision.
+
+A static_cast is also useful to perform a conversion that the compiler will not generate automatically.
+
+A const_cast changes only a **low-level** const in its operand.
+``` C++
+const char *pc;
+char *p = const_cast<char*>(pc); // ok: but writing through p is undefined
+```
+Once we have cast away the const of an object,
+the compiler will no longer prevent us from writing to that object.  
+If the object was originally not a const, using a cast to obtain write access is legal.  
+However, using a const_cast in order to write to a const object is undefined.
+
+const_cast can only change the **constness** of an expression, but not the type.   
+And the constness can be changed only by const_cast, but not by the other forms of named cast.
+``` C++
+const char *cp;
+char *q = static_cast<char*>(cp); // error
+static_cast<string>(cp); // ok
+const_cast<string>(cp); // error
+```
+
+A reinterpret_cast generally performs a **low-level reinterpretation** of the bit pattern of its operand.
+``` C++
+int *ip;
+char *pc = reinterpret_cast<char*> ip;
+```
+
+A reinterpret_cast is inherently machine dependent.  
+Safely using reinterpret_cast requires completely understanding the types involved
+as well as the details of how the compiler implements the cast.
+
+In early versions of C++, an explicit cast took one of the following two forms:
+* *type (expr)*: function-style cast notation
+* *(type) expr*: C-language-style cast notation
+
+Casts **interfere** with normal type checking.  
+It is strongly recommended that programmers avoid casts.  
+This advice is particularly applicable to reinterpret_casts.  
+A const_cast is **useful** in the context of overloaded functions.
+Other uses of const_cast often indicate a design flaw.
+
+Every time we write a cast, we should think hard about
+whether we can achieve the same result in a different way.  
+If the cast is unavoidable, errors can be mitigated by limiting the scope in which the cast value is used
+and by documenting all assumptions about the types involved.
+
+Depending on the types involved, an old-style cast has the same behavior
+as a const_cast, a static_cast, or a reinterpreted_cast.  
+When we use an old-style cast where a static_cast or a const_cast would be legal,
+the old-style cast does the same conversion as the respective named cast.  
+If neither cast is legal, then an old-style cast performs a reinterpreted_cast.
+
+
+
+### 4.12 Operator Precedence Table
+
+* L  ::(global/class/namespace scope)  
+* L .(member selector), -\>(member selectors), \[\](subscript), ()(function call), ()(type construction)  
+* R ++(post increment), --(post decrement), typeid(type ID), typeid(run-time type ID), explicit casts  
+* R ++(prefix increment), --(prefix decrement), ~(bitwise NOT), !(logical NOT), +(unary plus), -(unary minus),
+  \*(dereference), &(address-of), ()(type conversion), sizeof(size of object/type/parameter pack),
+  new(allocate object), new\[\](allocate array), delete(deallocate object), delete\[\](deallocate array),
+  noexcept(can expr throw)
+* L -\>\*(ptr to member select), .\*(ptr to member select)  
+* L \*(multiply), /(divide), %(modulo)  
+* L +(add), -(subtract)  
+* L \<\<(bitwise left shift), \>\>(bitwise right shift)  
+* L \<(less than), \<=(less then or equal), \>(greater than), \>=(greater than or equal)  
+* L ==(equality), !=(inequality)
+* L &(bitwise AND)
+* L ^(bitwise XOR)
+* L |(bitwise OR)
+* L &&(logical AND)
+* L ||(logical OR)
+* R ? :(conditional)
+* R =(assignment), \*=, /=, %=, +=, -=, \<\<=, \>\>=, &=, |=, ^=(compound assign)
+* R throw(throw exception)
+* L ,(comma)
+
+
+
+### Chapter Summary
+
