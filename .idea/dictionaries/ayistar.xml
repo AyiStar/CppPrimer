@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="ayistar">
     <words>
+      <w>aren</w>
       <w>bitset</w>
       <w>constness</w>
       <w>cstddef</w>
@@ -14,9 +15,12 @@
       <w>noexcept</w>
       <w>nonbool</w>
       <w>nonconst</w>
+      <w>nonreference</w>
       <w>signedness</w>
+      <w>stdexcept</w>
       <w>stdin</w>
       <w>subscripting</w>
+      <w>underflowed</w>
       <w>unincremented</w>
     </words>
   </dictionary>

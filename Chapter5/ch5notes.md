@@ -270,3 +270,126 @@ The detecting program needs a way to signal that something happened and that it 
 without knowing what part of the program will deal with the exceptional condition.  
 Having signaled what happened, the detecting part stops processing.
 
+Exception handling supports the cooperation between the detecting and handling parts of a program.
+In C++, exception involves:
+* **throw exception**: the detecting part uses it to indicate that it encountered something it can't handle.
+  We say that a throw *raises* an exception.
+* **try blocks**: the handling part uses it to deal with an exception.
+  A try block starts with the keyword *try* and ends with one or more *catch clauses*.  
+  Exceptions thrown from code executed inside a try block are usually handled by one of the catch clauses.
+  Because they *handle* the exception, *catch clauses* are also known as *exception handles*.
+* A set of **exception classes** that are used to pass information about what happened
+  between a *throw* and an associated *catch*.
+  
+A **throw** consists of the keyword *throw* followed by an expression.  
+The type of the expression determines what kind of the exception is thrown.  
+A throw expression is usually followed by a semicolon, making it into an expression statement.
+
+Example:
+``` C++
+if (item1.isbn() != item2.isbn())
+    throw runtime_error("Data must refer to same ISBN");
+cout << item1 + item2 << endl;
+```
+In the code above, if the ISBNs differ, we throw an expression that is an object of type *runtime_error*.
+
+Throwing an exception **terminates** the current function and   
+**transfer** control to a handler that will know how to handle this error.
+
+The type *runtime_error* is one of the **standard library exception** types
+and is defined in the header \<stdexcept\>.  
+We must initialize a runtime_error by giving it a *string* or a *C-style character string*.
+That string provides additional information about the problem.
+
+The general form of a try block is
+``` C++
+try {
+    program-statements
+} catch (exception-declaration) {
+    handler-statements
+} catch (exception-declaration) {
+    handler-statements
+} // ...
+```
+* When a catch is selected to handle an exception, the associated block is executed.
+  Once the catch finishes, execution continues with the statement immediately following the last catch clause of the try block.  
+* The programming-statements inside the try constitute the normal logic of the program.
+  Like any other blocks, they con contain any C++ statements, including declarations.
+  As with any block, variables declared inside a try block are inaccessible outside the block,
+  in particular, they are not accessible to the catch clauses.
+
+Example:
+``` C++
+while(cin >> item1 >> item2){
+    try {
+        // execute code that will add the two Sales_itmes
+        // if the addition fails, the code throws a runtime_error exception
+    } catch (runtime_error err) {
+        // remind the user thats the ISBNs must match and prompt for another pair
+        // what is a member function of the runtime_error class
+        cout << err.what() << "\nTry Again?  Enter y or n" << endl;
+        char c;
+        cin >> c;
+        if(!cin || c == 'n')
+            break;
+    }
+}
+```
+
+Each of the library exception classes define a member function named what.
+These functions take no arguments and return a C-style character string (i.e. a const char*).  
+The what member of runtime_error returns a copy of the string used to initialize the particular object.
+
+In complicated systems, the execution path of a program may pass through multiple try blocks
+*before* encountering code that throws an exception.  
+
+The **search** for a handler reverses the call chain.
+When an exception is thrown, the function that threw the exception is searched first.
+If no matching catch is found, that function *terminates*. The function's caller is searched next, and so on back up the execution path
+until a catch of an appropriate type is found.  
+
+If no appropriate catch is found, execution is transferred to a library function named *terminate*.
+The behavior of that function is system dependent but is guaranteed to *stop* further execution of the program.
+
+Exceptions that occur in programs that do not define any try blocks are handled in the same manner:  
+After all, there are no try blocks, there can be no handlers. Then terminate is called and the program is exited.
+
+Programs that properly "clean up" during exception handling are said to be **exception safe**.
+Writing exception sage code is surprisingly hard.  
+Programs that use exceptions simply to terminate the program when an exceptional condition occurs generally don't worry about exception safely.  
+Programs that do handle exceptions and continue processing generally must be constantly aware of
+whether an exception might occur and what the program must do to ensure that
+objects are valid, that resources don't leak, ans that the program is restored to an appropriate state.
+
+The C++ library defines several classes that it uses to report problems encountered in the functions in the standard library.  
+These classes are defined in 4 headers:
+* \<exception\>: define the most general kind of exception class names *exception*.
+  It communicates only that an exception occurred but provides no additional information.
+* \<stdexcept\>: define several general-purpose exception classes:
+    * exception: the most general kind of problem.
+    * runtime_error: Problem that can be detected only at run time.
+    * range_error: Run-time error: result generated outside the range of values that are meaningful.
+    * overflow_error: Run-time error: computation that overflowed.
+    * underflow_error: Run-time error: computation that underflowed.
+    * logic_error: Error in the logic of the program.
+    * domain_error: Logic error: argument for which no result exists.
+    * invalid_error: Logic error: inappropriate argument.
+    * length_error: Logic error: attempt to create an object larger than the maximum size of that type.
+    * out_of_range: Logic error: used a value outside the valid range.
+* \<new\>: define the bad_alloc exception type.
+* \<type_info\>: define the bad_cast exception type.
+
+The library exception classes have only a few operations:  
+create, copy, assign object of any of the exception types.
+
+* We can only *default initialize* exception, bad_alloc, and bad_cast objects.  
+* We must *explicitly initialize* other exception objects with a string or a C-style character string,
+  but we cannot default initialize them.
+  
+The exception types define only a single operation named *what*.  
+That function takes no arguments and returns a const char\* that points to a C-style character string.  
+The purpose of this C-style character string is to provide some sort of textual description of the exception thrown.  
+
+The contents of the C-style string that *what* returns depends on the type of the exception object.
+* For the types that take a string initializer, the *what* function returns that string.  
+* For other types, the value of the string that *what* returns varies by compiler.
