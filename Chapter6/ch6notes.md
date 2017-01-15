@@ -744,3 +744,247 @@ int a2[scale(i)]; // error: scale(i) is not a constant expression
 
 C++ programmers sometimes use a technique similar to header guards
 to *conditionally execute* debugging code.  
+This approach uses two preprocessor facilities: **assert** and **NDEBUG**.
+
+**assert** is a preprocessor macro.  
+A preprocessor macro is a preprocessor variable that acts somewhat like an inline function.  
+The assert macro takes a single expression, which it uses as a *condition*:  
+assert (*expr*);
+
+If the expression is false (i.e. zero), then assert writes a message and terminates the program.  
+If the expression is true (i.e. nonzero), then assert does nothing.  
+
+The assert macro is defined in the header \<cassert\>.
+
+Preprocessor names are managed by the preprocessor not the compiler.  
+So we use preprocessor names directly and do not provide a using declaration for them.
+
+As with preprocessor variables, macro names must be unique within the program.  
+Programs that include \<cassert\> may not define a variable, function or other entity named assert.  
+It is a good idea to avoid using the name assert for our own purpose
+even if we don't include cassert, because many headers include the assert header.
+
+The assert macro is often used to check for conditions that "cannot happen".
+
+The behavior of assert depends on the status of a preprocessor variable named NDEBUG.  
+If NDEBUG is defined, assert does nothing.  
+By default, NDEBUG is not defined, so, by default, assert performs a run-time check.
+
+We can "turn off" debugging by providing a #define to define NDEBUG.  
+Alternatively, most compilers provide a command-line option that lets us define preprocessor variables:  
+
+assert should be used only to verify things that truly should not be possible.  
+It can be useful as an aid in getting a program debugged but should not be used to
+substitute for run-time logic checks or error checking that the program should do.
+
+In addition to use assert, we can write our own conditional debugging code
+using NDEBUG and #ifndef, and #endif.
+``` C++
+void print(const int ia[], size_t size)
+{
+    #ifndef NDEBUG
+    // __func__ is a logical static defined by the compiler that holds the function's name
+    cerr << __func__ << " : array size is " << size << endl;
+    #endif
+    
+    // ...
+}
+```
+Here we use a variable named __func__ to print the name of the function we are debugging.  
+The compiler defines __func__ in **every** function.  
+It is a local static array of const char that holds the name of the function.
+
+The preprocessor defines 4 other names that can be useful in debugging:
+* __FILE__ : string literal containing the name of the file
+* __LINE__ : integer literal containing the current line number
+* __TIME__ : string literal containing the time the file was compiled
+* __DATE__ : string literal containing the date the file was compiled
+
+
+
+### 6.6 Function Matching
+
+**Function matching** is to figure out which overloaded function matches a given call.
+
+The first step of function matching identifies the set of overloaded functions
+considered for the call.  
+The functions in this set are the **candidate functions**.  
+A candidate function is a function with the same name as the called function
+and for which a declaration is visible at the point of the call.
+
+The second step selects from the set of candidate functions those functions 
+that can be called with the arguments in the given call.  
+The selected functions are the **viable functions**.  
+To be viable, a function must have the same number of parameters as there are arguments **in the call** (may have default arguments),
+and the type of each argument must match or be convertible to the type of its corresponding parameter.
+
+If there are no viable functions, the compiler will complain that there is no matching function.
+
+The third step of function matching determines which viable function provides the **best match**.  
+The idea is that, the closer the types of the argument and parameter are to each other,
+the better the match.
+
+The compiler determines, **argument by argument**, which function is (or functions are) the best match.  
+There is an overall best match if there is **one and only one** function for which:
+* The match for each argument is no worse than the match required by any other viable function.  
+* There is at least one argument for which the match is better than the match provided by any other viable function.
+
+If after looking at each argument there is no single function
+that is preferable, then the **call** is in error.
+Gje compiler will complain that the call is **ambiguous**.
+
+Casts should not be needed to call an overloaded function.  
+The need for a cast suggests that the parameter sets are designed poorly.
+
+The compiler **ranks** the conversions that could be used to convert
+each argument to the type of its corresponding parameter:
+1. An exact match, which means:
+    * The argument and parameter types are identical.
+    * The argument is converted from an array or function type
+      to the corresponding pointer type,
+    * A top-level const is added to or discarded from the argument.
+2. Match through a const conversion.
+3. Match through a promotion.
+4. Match through an arithmetic or pointer conversion.
+5. Match through a class-type conversion.
+
+It is important to remember that the small integer types **always**
+promote to int or a larger integral type.  
+Given two functions functions, one of which takes an int and the other a short,
+the short version will be called **only** on values of short.  
+Even though the smaller integral values might **appear** to be a closer match,
+those values are promoted to int, whereas calling the short version would require a conversion.
+``` C++
+void ff(int);
+voif ff(short);
+ff('a'); // char promotes to int; calls ff(int)
+```
+
+**All** the arithmetic conversions are treated as **equivalent** to each other.  
+The conversion from int to unsigned int does not take precedence over the conversion
+from int to double.
+``` C++
+void manip(long);
+void manip(float);
+manip(3.14); // error: ambiguous call (3.14 is a double literal)
+```
+
+When we call an overloaded function that differs on whether a reference or pointer parameter
+refers or points to const, the compiler uses the constness of the argument to decide which function to call.
+``` C++
+Record lookup(Account &);
+Recode lookup(const Account &);
+
+const Account a;
+Account b;
+lookup(a); // call lookup(const Account &)
+lookup(b); // call lookup(Account &)
+```
+
+
+
+### 6.7 Pointers to Functions
+
+A **function pointer** is just a pointer that denotes a function rather than an object.
+
+A function pointer points to a particular type.
+The type is determined by its **return type** and the types of its **parameters**.  
+The function's name is **not** part of its type.
+``` C++
+// compare lengths of two strings
+bool lengthCompare(const string &, const string &);
+// has type bool(const string &, const string &)
+
+// point to a function returning bool that takes two const string reference
+bool (*pf) (const string &, const string &); // unintialized
+```
+To declare a pointer that points to a function,
+we declare a pointer in place of the function name.  
+The **parentheses** around \*pf are necessary.
+If we omit it, we declare pf as a function that returns a pointer to bool.
+
+When we use the name of a function as a value,
+the function is **automatically** converted to a **pointer**.
+``` C++
+pf = lengthCompare; // pf now points to the function named lengthCompare
+pf = &lengthCompare; // equivalent assignment; address-of operator is optional
+```
+
+Moreover, we can use a pointer to to a function to **call** the function
+to which it points.  
+We can du so directly -- there is **no** need to *dereference* the pointer.
+``` C++
+bool b1 = pf("hello", "goodbye"); // call lengthCompare
+bool b2 = (*pf)("hello", "goodbye"); // equivalent call
+bool b3 = lengthCompare("hello", "goodbye"); // equivalent call
+```
+
+There is **no** conversion between pointers to one function type
+and pointers to another function type.  
+However, we can assign **nullptr** or a zero-valued integer constant expression
+to a function pointer to indicate that the pointer does not point to any function.
+
+When we declare a pointer to an overloaded function,
+the compiler uses the type of the pointer to determine which overloaded function to use.  
+The type of the pointer **must** match one of the overloaded functions **exactly**.
+
+As with arrays, we **cannot** define parameters of function type,
+but can have a parameter that is a **pointer** to function.  
+We can write a parameter that **looks like** a function type,
+but it will be treated as a pointer.
+``` C++
+// third parameter is a function type and is automatically treated as a pointer to function
+void useBigger(const string &s1, const string &s2, bool pf(const string &, const string &));
+
+// equivalent declaration: explicitly define the parameter as a pointer to function
+void useBigger(const string &s1, const string &s2, bool (*pf)(const string &, const string &));
+```
+When we pass a function as an **argument**, we can do so directly.  
+It will be automatically converted to a pointer.
+``` C++
+// automatically converts the function lengthCompare to a pointer to function
+useBigger(s1, s2, lengthCompare);
+```
+
+Type alias and decltype let us simplify code that uses function pointers:
+``` C++
+// Func and Func2 have function type
+typedef bool Func(const string &, const string &);
+typdef decltype(lengthCompare) Func2; // equivalent type
+
+// FuncP and FuncP2 have pointer to function type
+typedef bool (*FuncP)(const string &, const string &);
+typedef decltype(lengthCompare) *FuncP2; // equivalent type
+```
+It is important to note that decltype returns the function type,
+and the automatic conversion to pointer is **not done**.  
+Thus, if we want a pointer, we must add \*.
+
+As with arrays, we **can't** return a function type but can return a pointer to a function type.  
+unlike what happens to parameters, the compiler will not automatically treat a function return type as the corresponding pointer.
+So we must write the return type as a pointer type.
+``` C++
+using F = int(int*, int); // F is a function type, not a pointer
+using PF = int(*)(int*, int); // PF is a pointer type
+
+PF f1(int); // ok: PF is a pointer to function; f1 returns a pointer to function
+F f1(int); // error: F is a function type; f1 can't return a function
+F *f1(int); // ok: explicitly specify that the return type is a pointer to function
+
+// equivalent declaration (directly)
+int (*f1(int))(int*, int);
+
+// simplified declaration using a trailing return
+auto f1(int) -> int(*)(int*, int);
+```
+
+If we know which function(s) we want to return,
+we can use decltype to simplify writing a function pointer return type.
+``` C++
+string::size_type sumLength(const string&, const string&);
+string::size_type largerLength(const string&, const string&);
+
+// depending on the value of its string parameter,
+// getFcn returns a pointer to sumLength or to largerLength
+decltype(sumLength) *getFcn(const string &);
+```
