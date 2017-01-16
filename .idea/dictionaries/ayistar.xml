@@ -3,19 +3,24 @@
     <words>
       <w>aren</w>
       <w>bitset</w>
+      <w>cassert</w>
       <w>constness</w>
       <w>cstddef</w>
+      <w>cstdlib</w>
       <w>declarator</w>
       <w>decltype</w>
       <w>dereferenced</w>
       <w>dereferencing</w>
+      <w>doesn</w>
       <w>goto</w>
       <w>initializers</w>
       <w>istream</w>
+      <w>ndebug</w>
       <w>noexcept</w>
       <w>nonbool</w>
       <w>nonconst</w>
       <w>nonreference</w>
+      <w>ostream</w>
       <w>signedness</w>
       <w>stdexcept</w>
       <w>stdin</w>
