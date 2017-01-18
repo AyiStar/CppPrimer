@@ -31,19 +31,26 @@
 #define SALES_DATA_H
 #define FUNCTIONS
 
+#include <iostream>
 #include <string>
 
-struct Sales_data {
-    Sales_data() = default;
-    Sales_data(const std::string &s): bookNo(s) {}
+class Sales_data {
+    friend Sales_data add(const Sales_data&, const Sales_data&);
+    friend std::istream &read(std::istream&, Sales_data&);
+    friend std::ostream &print(std::ostream&, const Sales_data&);
+
+public:
+    Sales_data(): Sales_data("", 0, 0){ std::cout << "Default constructor" << std::endl; }
+    Sales_data(const std::string &s): Sales_data(s, 0, 0){ std::cout << "One-argument constructor" << std::endl;}
     Sales_data(const std::string &s, unsigned n, double p):
-        bookNo(s), units_sold(n), revenue(p*n) {}
+        bookNo(s), units_sold(n), revenue(p*n) { std::cout << "Delegated-to constructor" << std::endl;}
     Sales_data(std::istream &);
 
 	std::string isbn() const { return bookNo; }
 	Sales_data& combine(const Sales_data&);
-	double avg_price() const;
 
+private:
+    double avg_price() const;
 	std::string bookNo;
 	unsigned units_sold = 0;
 	double revenue = 0.0;
@@ -55,7 +62,7 @@ std::ostream &print(std::ostream&, const Sales_data&);
 
 std::istream &read(std::istream&, Sales_data&);
 
-double Sales_data::avg_price() const
+inline double Sales_data::avg_price() const
 {
     if (units_sold)
         return revenue / units_sold ;
@@ -70,13 +77,20 @@ Sales_data& Sales_data::combine(const Sales_data &rhs)
     return *this;
 }
 
+Sales_data::Sales_data(std::istream &is):
+    Sales_data()
+{
+    read(is, *this);
+    std::cout << "istream-argument constructor" << std::endl;
+}
+
 #ifdef FUNCTIONS
 
-std::istream &read(std::istream &is, const Sales_data &item)
+std::istream &read(std::istream &is, Sales_data &item)
 {
-    double prince = 0;
+    double price = 0;
     is >> item.bookNo >> item.units_sold >> price;
-    item.revenue = prince * item.units_sold;
+    item.revenue = price * item.units_sold;
     return is;
 }
 
@@ -95,7 +109,7 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs)
 }
 
 
-#endif
+#endif // FUNCTIONS
 
-#endif
+#endif // SALES_DATA_H
 

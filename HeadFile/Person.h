@@ -7,13 +7,34 @@
 #define CPPPRIMER_PERSON_H
 #define FUNCTIONS
 
-class Person {
-    std::string name() const { return name; }
-    std::string address() const { return address; }
+#include <iostream>
+#include <string>
 
+class Person {
+    friend std::istream &read (std::istream&, Person&);
+    friend std::ostream &print (std::ostream&, const Person&);
+public:
+    Person() = default;
+    Person(const std::string &s): name(s){}
+    Person(const std::string &nm, const std::string &ad):
+        name(nm), address(ad){}
+    Person(std::istream &);
+
+    std::string Name() const { return this->name; }
+    std::string Address() const { return this->address; }
+
+private:
     std::string name;
     std::string address;
 };
+
+std::istream &read (std::istream &is, Person &rhs);
+std::ostream &print (std::ostream &os, const Person &rhs);
+
+Person::Person(std::istream &is)
+{
+    read(is, *this);
+}
 
 
 
@@ -27,12 +48,12 @@ std::istream &read (std::istream &is, Person &rhs)
 
 std::ostream &print (std::ostream &os, const Person &rhs)
 {
-    os << rhs.name() << " " << rhs.address();
+    os << rhs.Name() << " " << rhs.Address();
     return os;
 }
 
 
 
-#endif
+#endif // FUNCTIONS
 
 #endif //CPPPRIMER_PERSON_H
