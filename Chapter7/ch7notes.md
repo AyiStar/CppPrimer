@@ -625,3 +625,192 @@ The correct way to define an object that uses the default constructor for initia
 is to **leave off** the trailing, empty parentheses.  
 If we don't leave off the parentheses, we will declare a function, not an object.  
 
+
+#### 7.5.4 Implicit Class-Type Conversions
+
+Every constructor that can be called with a **single** argument defines
+an **implicit** conversion from the constructor's **parameter** type to the **class** type.  
+Such constructors are referred to as *converting constructors*.
+
+``` C++
+string null_book = "9-999-99999-9";
+item.combine(null_book); 
+// construct a temporary Sales_data object with units_sold and revenue equal to 0 and bookNo equal to null_book
+```
+
+The compiler will automatically apply **only one** class-type conversion.
+
+``` C++
+item.combine("9-999-99999-9");
+// error: require two user-defined conversions:
+// 1. convert "9-999-99999-9" to string
+// 2. convert string to Sales_data
+
+item.combine(string("9-999-99999-9"));
+// ok: explicit conversion to string, implicit conversion to Sales_data
+
+item.combine(Sales_data("9-999-99999-9"));
+// ok: implicit conversion to string, explicit conversion to Sales_data
+```
+
+We can prevent the use of a constructor in a context that requires an implicit conversion
+by declaring the constructor as **explicit**:
+``` C++
+class Sales_data {
+public:
+    Sales_data() = default;
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p * n) {}
+    explicit Sales_data(const std::string &s): bookNo(s) {}
+    explicit Sales_data(std::istream &);
+    
+    // ...
+};
+
+// now
+item.combine(null_book); // error: string constructor is explicit
+item.combine(std::cin); // error: istream constructor is explicit
+
+Sales_data item1 (null_book); // ok: direct initialization
+Sales_data item2 = null_ook; // error: cannot use the copy form of initialization with an explicit constructor
+```
+
+The explicit keyword is meaningful only on constructors that can be called with a **single** argument.  
+The explicit keyword is used only on the constructor declaration **inside** the class.
+
+When a constructor is declared *explicit*, it can be used only with
+the **direct form** of initialization.  
+Moreover, the compiler will **not** use this constructor in an automatic conversion.  
+But we can use such constructors explicitly to force a conversion.
+
+
+#### 7.5.5 Aggregate Classes
+
+An **aggregate class** gives users direct access to its members and
+has special initialization syntax.  
+A class is an aggregate if:  
+* **All** of its data members are **public**.
+* It does not define any constructors.
+* It has no in-class initializers.
+* It has no base classes or virtual functions.
+
+We can initialize the data members of an aggregate class
+by providing a **braced list** of member initializers.  
+The initializers must appear in declaration order of the data members.
+
+If the list of initializers has **fewer** elements than the class has members,
+the trailing members are **value initialized**.  
+The list of initializers must **not** contain more elements than the class has members.
+
+There are three significant **drawbacks** to explicitly initializing the members of an object of class type:
+* It requires that all the data members of the class be **public**.
+* It puts the burden on the user of the class (rather than on the class author)
+  to correctly initialize every member of every object.s
+* If a member is added or removed, all initializations have to be updated.
+
+
+#### 7.5.6 Literal Classes
+
+Certain classes are literal types.  
+They may have function members that are **constexpr**. These functions are implicitly const.
+
+* An aggregate class whose data members are all of literal type is a literal class.  
+* A nonaggregate class, that meets the following restrictions, is also a literal class:
+    * The data members all must have literal type.
+    * The class must have at least one constexpr constructor.
+    * If a data member has an in-class initializer, the initializer for a member of built-in type
+      must be a constant expression, or if the member has class type, the initializer must use
+      the member's own constexpr constructor.
+    * The class must use default definition for its destructor.
+    
+Although constructors can't be const, constructors in a literal class can be constexpr.  
+Indeed, a literal class must provide at least one constexpr constructor.
+
+A constexpr constructor can be declared as **= default**.  
+Otherwise, a constexpr constructor must meet the requirements of a constructor and of a constexpr function.  
+As a result, the body of a constexpr constructor is typically empty.
+
+``` C++
+class Debug {
+public:
+    constexpr Debug(bool b = true):
+        hw(b), io(b), other(b) { }
+    constexpr Debug(bool h, bool i, bool o):
+        hw(h), io(i), other(o) { }
+    constexpr bool any() { return hw || io || other; }
+    void set_io(bool b) { io = b; }
+    void set_hw(bool b) { hw = b; }
+    void set_other(bool b) { other = b; }
+    
+private:
+    bool hw; // hardware errors
+    bool io; // IO errors
+    bool other; // other errors
+};
+```
+
+A constexpr constructor must initialize **every** data member.  
+The initializers must either use a constexpr constructor or be a constant expression.
+
+A constexpr constructor is used to generate objects that are constexpr and
+for parameters or return types in constexpr functions.
+
+``` C++
+constexpr Debug io_sub(false, true, false);
+if (io_sub.any())
+    cerr << "print appropriate error messages" << endl;
+constexpr Debug prod(false);
+if(prod.any())
+    cerr << "print an error message" << endl;
+```
+
+
+
+### 7.6 static Class Members
+
+Classes sometimes need members that are associated with the class,
+rather than with individual objects of the class type.
+
+We say a member is associated with the class by adding
+the keyword *static* to its declaration.  
+static members can be public or private.  
+The type of a static data member can be const, reference, array, and so forth.
+
+The static members of a class exist **outside any object**.  
+static member functions are not bound to any object; they do not have a *this* pointer.
+
+We can access a static member directly through the scope operator.  
+Member functions can use static members directly, without the scope operator.
+
+We can define a static member function inside or outside of the class body.  
+When we define a static member outside the class, we do not repeat the static keyword.
+
+static data members are not defined when we create objects of the class.
+So they are not initialized by the class' constructors.  
+Instead, we must define and initialize each static data **outside** the class body.  
+A static data member may be defined only once.
+
+We name the object's type, followed by the name of the class, the scope operator,
+and the member's own name, to define and initialize a static data member.
+
+Put the definition of static data members in the same file
+that contains the definitions of the class noninline member functions.
+
+We can provide in-class initializers for static members that have const integral type
+and must do so for static members that are constexprs of literal types.  
+The initializers must be constant expressions.  
+Such members ae themselves constant expressions.
+
+Even if a const static data member is initialized inside the class body,
+that member ordinarily should be defined outside the class definition,
+in order to avoid the compile error when the member is used outside the class.  
+If an initializer provided inside the class, the member's definition must not specify an initial value.
+
+A static data member can have incomplete type because it exist independently
+of any other object.  
+In particular, a static data member can have the same type as the class type
+of which it is a member.
+
+We can use a static member as a default argument.  
+A nonstatic data member may not be used as a default argument
+because its value is part of the object of which it is a member.
