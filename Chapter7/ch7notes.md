@@ -813,4 +813,4 @@ of which it is a member.
 
 We can use a static member as a default argument.  
 A nonstatic data member may not be used as a default argument
-because its value is part of the object of which it is a member.
+because its value is part of the object of which it is a member
