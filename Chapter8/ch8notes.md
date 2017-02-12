@@ -188,3 +188,198 @@ In addition, the types add members to manage the file associated with the stream
 
 
 #### 8.2.1 Using File Stream Objects
+
+When we want to read or write a file, we define a file stream object and **associate** that object with the file.  
+Each file stream class defines a member function named **open** that does whatever system-specific operations are required
+to locate the given file and open it for reading or writing as appropriate.
+
+When we create a file stream, we can (optionally) provide a file name.
+When we supply a file name, *open* is called automatically.  
+``` C++
+ifstream in(ifile); // construct an ifstream and open the given file
+ofstream out; // output file stream that is not associated with any file
+```
+
+``` C++
+ifstream input(arg[1]); // open the file of sales transactions
+ofstream output(arg[2]); // open the output file
+Sales_data total; // variable to hold the running sum
+if (read(input, total)){ // read the first transaction
+    Sales_data trans; // variable to hold data for the next transaction
+    while (read(input, trans)){ // read the remaining transactions
+        if (total.isbn() == trans.isbn()) // check isbns
+            total.combine(trans); // update the running total
+        else{
+            print(output, total) << endl; // print the results
+            total = trans; // process the next book
+        }
+    }
+    print(output, total) << endl; // print the last transaction
+} else
+    cerr << "No data?!" << endl;
+```
+
+We can use an object of an **inherited** type in places
+where an object of the original type is expected.
+
+##### The *open* and *close* Members
+
+When we define an empty file stream object, we can subsequently associate
+that object with a file by calling **open**.  
+``` C++
+ifstream in(ifile); // construct an ifstream and open the given file
+ofstream out; // output file that is not associated with any file
+out.open(ifile + ".copy"); // open the specified file
+```
+
+If a call to *open* fails, **failbit** is set.  
+Because a call to open might fail, it is usually a good idea to verify that the *open* succeeded.  
+``` C++
+if (out) // check that the open succeeded
+    // the open succeeded, so we can use the file
+```
+
+Calling *open* on a file stream that is already open will *fail* and set *failbit*.  
+To associate a file stream with a different file, we must first **close** the existing file.
+``` C++
+in.close(); // close the file
+in.open(ifile + "2"); // open another file
+```
+
+
+##### Automatic Construction and Destruction
+
+Here an example whose main function takes a list of files it should process.
+``` C++
+for (auto p = argv + 1; p != argv + argc; ++p) {
+    ifstream input(*p); // create input and open the file
+    in (input) { // if the file is ok, process the file
+        process(input);
+    } else
+        cerr << "couldn't open: " + string(*p);
+} // input goes out of scope and is destroyed on each iteration
+```
+
+When an fstream object goes out of scope, the file it is bound to
+is automatically **closed**.
+
+
+#### 8.2.2 File Mode
+
+Each stream has an associated **file mode** that represents how the file may be used.  
+* in: open for input
+* out: open for output
+* app: seek to the end before every write
+* ate: seek to the end immediately after the open
+* trunc: truncate the file
+* binary: do IO operations in binary mode
+
+We can supply a file mode whenever we open a file.  
+The modes that we can specify have the following restrictions:  
+* out may be set only for an ofstream or fstream object.
+* in may be set only for an ifstream or fstream object.
+* trunc may be set only when out is also specified.
+* app mode may be specified so long as trunc is not.
+  If app is specified, the file is always opened in output mode, even if out was not explicitly specified.
+* By default, a file opened in out mode is truncated even if we do not specify trunc.  
+  To preserve the contents of a file opened with out, we must also specify app, or we must also specify in.
+* ate and binary modes may be specified on any file stream object type
+  and in combination with any other file mode.
+  
+Each file stream type defines a **default** mode:  
+* ifstream: in mode.
+* ofstream: out mode.
+* fstream: in and out modes.
+
+##### Opening a File in out Mode Discards Existing Data
+
+By default, when we open an ofstream, the contents of the file are **discarded**.
+
+``` C++
+// file1 is truncated in each of these cases
+ofstream out("file1"); // out and trunc are implicit
+ofstream out2("file1", ofstream::out); // trunc is implicit
+ofstream out3("file1", ofstream::out | ofstream::trunc);
+
+// to preserve the file's contents, we must explicitly specify app mode
+ofstream app("file2", ofstream::app); // out is implicit
+ofstream app2("file2", ofstream::out | ofstream::app); 
+```
+
+The only way to preserve the existing data in a file opened by an ofstream
+is to specify app or in mode explicitly.
+
+##### File Mode Is Determined Each Time *open* Is Called
+
+The file mode fo a given stream may change each time a file is opened.  
+
+``` C++
+ofstream out; // no file mode is set
+out.open("scratchpad"); // mpde implicitly out and trunc
+out.close();
+out.open("previous", ofstream::app); // mode is out and app
+out.close();
+```
+
+
+### 8.3 *string* Streams
+
+\<sstream\> defines 3 types to support in-memory IO.  
+These types read from or write to a string as if the string were an IO stream.
+
+stringstream-specified operations:  
+* sstream strm; strm is an unbound stringstream. sstream is one of the types defined in \<sstream\>.
+* sstream strm(s); strm is an sstream that holds a copy of the string s.
+  This constructor is explicit.
+* strm.str(): return a copy of the string that strm holds.
+* strm.str(s): copies the string s into strm. Return void.
+
+
+#### 8.3.1 Using an istringstream
+
+An istringstream is often used when we have some work to do on an **entire line**,
+and other work to do with individual **words** within a line.
+
+``` C++
+struct PersonInfo{
+    string name;
+    vector<string> phones;
+};
+
+string line, word; // will hold a line and word from input, respectively
+vector<PersonInfo> people; // will hold all the records from the input
+
+// read the input a line at a time until cin hits end-of-file (or another error)
+while (getline(cin, line)) {
+    PersonInfo info; // create an object to hold this record's data
+    istringstream record(line); // bind record to the line we just read
+    record >> info.name; // read the name
+    while (record >> word) // read the phone numbers
+        info.phones.push_back(word); // and store them
+    people.push_back(info); // append this record to people
+```
+
+#### Using ostringstreams
+
+An ostringstream is useful when we need to **build up our output a little at a time**
+but **do not** want to print the output until later.
+
+``` C++
+for (const auto &entry : people) { // for each entry in people
+    ostringstream formatted, badNums; // objects created on each loop
+    for (const auto &nums : entry.phones) { // for each number
+        if (!valid(nums)) {
+            badNums << " " << nums; // string in badNums
+        } else
+            // "writes" to formatted's string
+            formatted << " " << format(nums);
+    }
+    if (badNums.str().empty()) // there were no bad numbers
+        os << entry.name << " " //print the name
+           << formatted.str() << endl; // and reformatted numbers
+    else
+        cerr << "input error: " << entry.name
+             << " invalid number(s) " << badNums.str() << endl;
+}
+```
+

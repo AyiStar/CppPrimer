@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <sstream>
 
 std::istream &repeat(std::istream &is)
 {
@@ -16,7 +17,9 @@ std::istream &repeat(std::istream &is)
 
 int main()
 {
-    repeat(std::cin);
-    repeat(std::cin);
+    std::string s("Hello, world!\n");
+    std::istringstream isstrm(s);
+    repeat(isstrm);
+    repeat(isstrm);
     return 0;
 }
