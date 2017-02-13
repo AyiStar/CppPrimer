@@ -352,3 +352,229 @@ The container use different strategies for allocating elements and that these st
   requires elements to be **moved**.
 * Adding elements to a *vector* or a *string* may cause the entire object to be **reallocated**.
 
+##### Using push_back
+
+Aside from *array* and *forward_list*, every sequential container (including the *string* type) supports push_back.
+
+Because string is just a container of characters, we can use push_back to add characters to the end of the string.
+
+``` C++
+void pluralize(size_t cnt, string &word)
+{
+    if (cnt > 1)
+        word.push_back('s');
+}
+```
+
+When we use an object to initialize a container, or insert an object into a container,
+a **copy** of that object's value is placed in the container, not the object itself.
+
+##### Using push_front
+
+*list*, *forward_list* and *deque* containers support *push_front*.
+This operation inserts a new element at the front of the container.
+
+*deque* and *vector* both offer fast random access to its elements.
+But *deque* provides push_front while *vector* does not.
+
+A deque guarantees constant-time insert and delete of elements at the **beginning and end** of the container.  
+As with vector, inserting elements other than at the front or back of a deque is a potentially expensive operation.
+
+##### Adding Elements at a Special Point in the Container
+
+*insert* members are supported for *vector*, *deque*, *list* and *string*.  
+*forward_list* provides specialized versions of these members.
+
+Each of the insert functions takes an iterator as its first argument.
+The iterator indicates where in the container to pu the element(s).  
+Because the iterator might refer to a nonexistent element off the end of the container,
+and because it is useful to have a way to insert elements at the beginning of a container,
+element(s) are inserted **before** the position denoted by the iterator.
+
+We can insert elements at the beginning of a container without worrying about
+whether the container has *push_front*.
+
+##### Inserting a Range of Elements
+
+The arguments to *insert* that appear after the initial iterator argument
+are analogous to the container constructors that take the same parameters,
+for example, an element count and a value, a pair of iterators, or an initializer list.
+
+When we pass a pair of iterators, those iterators may **not** refer to the same container
+as the one to which we are adding elements.
+
+The version of *insert* that take a count or a range return an iterator
+to the **first** element that was inserted.  
+If the range is empty, no elements are inserted, and the operation returns its first parameter.
+
+##### Using the Return from insert
+
+We can use the value returned by *Insert* to repeatedly insert elements at a specified position in the container.
+
+``` C++
+list<string> lst;
+auto iter = lst.begin();;
+while(cin >> word)
+    ter = lst.insert(iter, word); // same as calling push_front
+```
+
+##### Using the Emplace Operation
+
+*emplace_front*, *emplace* and *emplace_back*, which construct rather than copy elements,
+correspond to the *push_front*, *insert*, and *push_back* operations
+in that they let us put an element at the front of the container, in front of a given position, or at the back of the container, respectively.
+
+When we call an emplace member, we pass arguments to a **constructor** for the element type.
+The emplace members use those arguments to construct an element **directly** in space managed by the container.
+
+``` C++
+// construct a Sales_data object at the end of c
+
+// use the three-argument Sales_data constructor
+c.emplace_back("978-0590353403", 25, 15.99);
+
+// error: there is no version of push_back that takes three arguments
+c.push_back("978-0590353403", 25, 15.99);
+
+// ok: we create a temporary Sales_data object to pass to push_back
+c.push_back(Sales_data("978-0590353403", 25, 15.99));
+```
+
+The arguments to an emplace function vary depending on the element type.
+The arguments must match a constructor for the element type.
+
+
+#### 9.3.2 Accessing Elements
+
+Here are the operations to access elements in a **sequential container**:  
+(Note: *at* and *subscript* operator valid only for string, vector, deque, and array.  
+ back not valid for forward_list.  
+ The access operations are undefined if the container has no elements.)  
+* c.back(): return a reference to the last element in c. 
+* c.front(): return a reference to the first element in c.
+* c[n]: return a reference to the element indexed by the unsigned integral value n. Undefined if n >= c.size().
+* c.at(n): return a reference to the element indexed by n. If the index is out of range, throw an out_of_range exception.
+
+Each sequential container has a *front* member. (including *array*)  
+All except *forward_list* have a *back* member.
+
+We can obtain references to the first and last elements in two different ways:
+* Call *front* and *back*.
+* Dereference the iterator returned by *begin* and **decrementing** and then dereference the iterator returned by *end*.
+
+Before calling *front* or *back* or dereferencing the iterator from *begin* or *end*,
+we should check that the contain is not empty.
+
+##### The Access Members Return References
+
+If the container is not const, the return is an ordinary reference that we can use to change the value of the fetched element.  
+If the container is const, the return is a reference to const.
+
+If we use *auto* to store the return from one of these functions
+and we want to use that variable to change the element,
+we must remember to define our variable as a reference type.
+
+``` C++
+if (!c.empty){
+    c.front() = 42; // assign 42 to the first element in c
+    auto &v = c.back(); // get a reference to the last element
+    v = 1024; // change the element in c
+    auto v2 = c.back(); // v2 is not a reference; it's a copy of c.back()
+    v2 = 0; // no change to the element in c
+}
+```
+
+##### Subscripting and Safe Random Access
+
+If we want to ensure that our index is valid, we can use the *at* member instead of subscript operator.
+It acts like the subscript operator, but if the index is invalid, *at* throws an *out_of_range* exception.
+
+
+#### 9.3.3 Erasing Elements
+
+Here are the erase operations on **sequential containers**:  
+(Note: they are not supported by *array*.  
+ *forward_list* has a special version of *erase*.  
+ *pop_back* not valid for *forward_list*.  
+ *pop_front* not valid for *vector* and *string*.)
+* c.pop_back(): remove last element in c. Return void.
+* c.pop_front(): remove first element in c. Return void.
+* c.erase(p): remove the element denoted by the iterator p
+              and return an iterator to the element after the one deleted or the off-the-end iterator if p denotes the last element.
+* c.erase(b, e): remove the range of elements denoted by the iterators b and e.
+                 Return an iterator to the element after the last one that was deleted , or an off-the-end iterator if e is itself an off-the-end iterator.
+* c.clear(): remove all the element in c. Return void.
+
+The members above do **not** check their argument(s).
+The programmers must ensure that element(s) exist before removing them.
+
+Removing elements anywhere but the beginning or end of a deque invalidates all iterators, references and pointers.  
+Iterators, references and pointers to elements **after** the ensure point in a *vector* or *string* are invalidated.
+
+##### The pop_front and pop_back Members
+
+pop_front and pop_back return **void**.
+If you need the value you are about to pop, you must store that value before doing the pop.
+
+##### Removing an Element from within the Container
+
+The *erase* members return an iterator referring to the location **after** the (last) element that was removed.
+
+The following loop erases the odd elements in a *list*.
+
+``` C++
+list<int> lst = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+auto it = lst.begin();
+while(it != lst.end()){
+    if(*it % 2)
+        it = lst.erase(it);
+    else
+        ++it;
+}
+```
+
+
+#### 9.3.4 Specialized forward_list Operations
+
+When we add or remove an element in a forward_list, we need access to its predecessor in order to update that element's links.
+However, *forward_list* is a singly link list, so there is no way to get to an element's predecessor.  
+For this reason, the operations to add or remove elements in a *forward_list* operate by changing the element **after** the given element.
+That way, we always have access to the elements that are affected by the change.
+
+So *forward_list* does **not** define *insert*, *emplace*, or *erase*.
+Instead it defines members named *insert_after*, *emplace_after*, and *erase_after*.  
+To support these operations, *forward_list* also defines *before_begin*, which returns an *off-the beginning* iterator.
+This iterator lets us add or remove element after the nonexistent element before the first one in the list.
+
+Here are the operations to insert or remove elements in a *forward_list*:
+* lst.before_begin(): iterator denoting the nonexistent element just before the beginning of the list.
+* lst.cbefore_begin(): return a const_iterator.
+* lst.insert_after(p, t) / (p, n, t) / (p, b, e) / (p, il): 
+  insert element(s) after the one denoted by iterator p. 
+  t is an object, n is a count, b and e are iterators denoting a range (b and e must **not** refer to lst), and il is a braced list.
+  Return an iterator to the **last** inserted element. If the range is empty, return p.
+  Undefined if p is the off-the-end iterator.
+* lst.emplace_after(p, args): use args to construct an element after the one denoted by iterator p.
+  Return an iterator to the new element.
+* lst.erase_after(p) / (b, e):
+  remove the element after the one denoted by iterator p 
+  or the range of elements from the one **after** the iterator b up to but **not including** the one denoted by e.
+  Return an iterator to the element **after** the one deleted, or the off-the-end iterator if there is no such element.
+  
+When we add or remove elements in a *forward_list*, we have to keep track of two iterators:
+one to the element we're checking and one to that element's predecessor.
+
+``` C++
+forward_list<int> flst = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+auto prev = flst.before_begin();
+auto curr = flst.begin();
+
+while(curr != flst.end()){
+    if(*curr % 2)
+        curr = flst.erase_after(prev);
+    else {
+        prev = curr;
+        ++curr;
+    }
+}
+```
