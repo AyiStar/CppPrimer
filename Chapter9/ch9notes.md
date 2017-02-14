@@ -578,3 +578,134 @@ while(curr != flst.end()){
     }
 }
 ```
+
+
+#### 9.3.5 Resizing a Container
+
+With the exception of *array*s, we can use *resize* to make a container larger or smaller.  
+* If the current size is greater than the requested size, elements are deleted from the back of the container.
+* If the current size is less than the new size, elements are added to the back of the container.
+
+Here are the sequential container size operations:
+* c.resize(n): resize c so that it has n elements. Any elements **added** are value initialized.
+* c.resize(n, t): resize c to have n elements. Any elements **added** have value t.
+
+
+#### 9.3.6 Container Operations May Invalidate Iterators
+
+Operations that add or remove elements from a container can invalidate pointers, references, or iterators to container elements.  
+An *invalidated** pointer, reference, or iterator is one that no longer denotes an element.
+
+After an operation that adds elements to a container:  
+* Iterators, pointers, and references to a *vector* or *string* are invalid
+  if the container was **reallocated**. If no reallocation happens, indirect references to elements **before** the insertion remain valid;
+  those to elements **after** the insertion are invalid.
+* Iterators, pointers, and references to a *deque* are invalid
+  if we add elements anywhere but at the front or back. If we add at the front or back, iterators are invalidated, but references and pointers to existing elements are not.
+* Iterators, pointers, and references (including the off-the-end and the before-the-beginning iterators) to a *list* or *forward_list* remain valid.
+
+After we remove an element:
+* All other iterators, references or pointers (including the off-the-end and before-the -beginning iterators)
+  to a *list* or *forward_list* remain valid.
+* All other iterators, references or pointers to a *deque* are invalidated
+  if the removed elements are anywhere but the front or back. If we remove elements at the back of the deque, the off-the-end iterator is invalidated but other iterators, references, and pointers are unaffected;
+  they are also unaffected if we remove from the front.
+* All other iterators, references, or pointers to a *vector* or *string* remain valid for elements **before** the removal point.
+  Note: the off-the-end iterator is always invalidated when we remove elements.
+  
+When using an iterator, a reference, or a pointer to a container element,
+**minimize** the part of the program during which an iterator must stay valid.  
+It it especially important for *vector*, *string* and *deque*.
+
+##### Writing Loops That Change a Container
+
+Loops that add or remove elements of a vector, string or deque must ensure that
+the iterator, reference, or pointer is refreshed on each trip through the loop.  
+Refreshing an iterator is easy if the loop calls *insert* or *erase*.
+Those operations return iterators, which we can use to reset the iterator.
+
+##### Avoid Storing the Iterator Returned from *end*
+
+Loops that add or remove elements should always call *end* rather than use a stored copy.  
+Partly for this reason, C++ standard libraries are usually implemented so that calling end() is a very fast operation.
+
+
+
+### 9.4 How a *vector* Grows
+
+*vector* and *string* elements are stored **contiguously**.
+
+In the case of *vector*s and *string*s, part of the implementation leaks into its interface.
+
+Given that elements are contiguous and the size of the container is flexible,
+when we add an element to a *vector* or a *string*, if there is no room for the new element,
+the container must allocate new memory.
+
+If the *vector* did this memory allocation and deallocation **each** time we added an element,
+performance would be unacceptably slow.
+
+To avoid these costs, library implementors use allocation strategies that reduce the number of times the container is reallocated.  
+When they have to get new memory, *vector* and *string* implementations typically allocate capacity **beyond** what is immediately needed.
+The container hold the storage **in reverse** and uses it to allocate new elements as they are needed.
+
+##### Members to Manage Capacity
+
+The *vector* and *string* types provide members that let us interact with the memory-allocation part of the implementation:  
+(Note: shrink_to_fit valid only for *vector*, *string*, and *deque*.  
+ *capacity* and *reserve* valid only for *vector* and *string*.)  
+* c.shrink_to_fit(): request to reduce capacity() to equal to ().
+* c.capacity(): number of elements c can have before reallocation is necessary.
+* c.reserve(n): allocate space for at least n elements.
+
+A call to *reserve* changes the capacity of the *vector* only if the requested space **exceeds** the current capacity.  
+If so, *reserve* allocates **at least** as much as (and may allocate more than) the requested amount.  
+If not, *reserve* does not cause the container to give back memory.
+
+There is **no guarantee** that a call to *shrink_to_fit* will return memory.
+The implementation is free to ignore this request.
+
+##### **capacity** and **size**
+
+* The *size* of a container is the number of elements it already holds.
+* The *capacity* of a container is how many elements it can hold before more space must be allocated.
+
+Each vector implementation can choose its own allocation strategy.  
+However, it **must** not allocate new memory until it is forced to do so.
+
+A *vector* may be reallocated **only** :
+* when the user performs an insert operation when the *size* equals *capacity*.
+* by a call to *resize* or *reserve* with a value that **exceeds** the current capacity.
+
+Technically speaking, the execution time of creating an n-element vector by calling push_back n times on an initially empty vector
+must never be more than a constant multiple of n.
+
+
+### 9.5 Additional *string* Operations
+
+The *string* library defines a great number of functions, which use repeated patterns.
+
+#### 9.5.1 Other Ways to Construct *string*s
+
+Here are there more ways to construct a string:  
+(Note: n, len2 and pos2 are all **unsigned** values)  
+* string s(cp, n); s is a copy of the first n characters in the array to which cp points.
+  The array must have at least n characters.
+* string s(s2, pos2); s is a copy of the characters in the string s2 starting at the index pos2.
+  Undefined if pos2 > s2.size().
+* string s(s2, pos2, len2); s is a copy of len2 characters from s2 starting at the index pos2.
+  Undefined if pos2 > s2.size(). Regardless of the value of len2, copies at most s2.siz() - pos2 characters.
+
+Ordinarily when we create a *string* from a const char*, the array to which the pointer points
+must be **null terminated**; characters are copied up to the null.
+
+When we copy from a *string*, if the position argument is greater than the size,
+then the constructor throws an out_of_range exception.
+
+##### The *substr* Operation
+
+s.substr(pos, n): return a string containing n characters from s starting at pos.
+pos defaults to 0. n defaults to a value that causes the library to copy all the characters in s starting from pos.
+
+The substr function throws an out_of_range exception if the position exceeds the size of the string.  
+If the position plus the count is greater than the size, the count is adjusted to copy only up to the end of the string.
+
