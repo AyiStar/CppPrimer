@@ -709,3 +709,157 @@ pos defaults to 0. n defaults to a value that causes the library to copy all the
 The substr function throws an out_of_range exception if the position exceeds the size of the string.  
 If the position plus the count is greater than the size, the count is adjusted to copy only up to the end of the string.
 
+
+#### 9.5.2 Other Ways to Change a *string*
+
+*string* defines additional versions of *insert* and *erase*, which take an **index**.
+The index indicates the starting element to *erase* or the position *before* which to *insert* the given value.
+
+Here are the operations to modify strings: 
+* s.insert(pos, args): insert characters specified by args before pos.
+  pos can be an index or an iterator. Versions taking an index return a reference to s;
+  those taking an iterator return an iterator denoting the first inserted character.
+* s.erase(pos, len): remove len characters starting at position pos.
+  If len is omitted, removes characters from pos to the end of s. Return a reference to s.
+* s.assign(args): replace characters in s according to args. Return a reference to s.
+* s.append(args): append args to s. Return a reference to s.
+* s.replace(range, args): remove range of characters from s and replace them with the characters formed by args.
+  range is either an index and a length or a pair of iterators into s.
+  Return a reference to s.
+* Note: args can be one of the following ; append and assign can use all forms;
+  str must be distinct from s and the iterators b and e may not refer to s:
+    * str: the string str.
+    * str, pos, len: up to len characters from str starting at pos.
+    * cp, len: up to len characters from the character array pointed to by cp.
+    * cp: null-terminated array pointed to by pointer cp.
+    * n, c: n copies of character c.
+    * b, e: characters in the range formed by iterators b and e.
+    * initializer list: comma-separated list of characters enclosed in braces.
+* args for *replace* and *insert* depend on how *range* or *pos* is specified.
+    
+``` C++
+s.insert(s.size(), 5, '!'); // insert five exclamation points at the end of s
+s.erase(s.size() - 5, 5); // erase the last five characters from s
+```
+
+We can use a **null-terminated** character array as the value to insert or assign into a string.
+
+``` C++
+const char *cp = "Stately, plump Buck";
+s.assign(cp, 7); // s == "Stately"
+s.insert(s.size(), cp + 7); // s == "Stately, plump Buck"
+
+string s = "some string", s2 = "some other string";
+s.insert(0, s2); // insert a copy of s2 before position 0 in s
+s.insert(0, s2, 0, s2.size()); // insert s2.size() characters from s2 starting at s2[0] before s[0]
+```
+
+##### The append and replace Functions
+
+The *append* operation is a shorthand way of inserting at the end.  
+The *replace* operations are a shorthand way of calling *erase* **and** *insert*.
+
+```C++
+string s("C++ Primer"), s2 = s;
+
+s.insert(s.size(), " 4th Ed."); // s == "C++ Primer 4th Ed"
+s2.append(" 4th Ed."); // equivalent: appends "4th Ed." to s2; s == s2
+
+s.erase(11, 3); // s == "C++ Primer Ed."
+s.insert(11. "5th"); // s == "C++ Primer 5th Ed."
+s2.replace(11, 3, "5th"); // equivalent: s == s2
+```
+
+##### The Many Overloaded Ways to Change a *string*
+
+The *append*, *assign*, *insert*, *replace* functions have several overloaded versions.  
+The arguments to these functions vary as to how we specify what characters to add and what part of the string to change.
+
+The *assign* and *append* functions have **no** need to specify what part of the string is changed:
+*assign* always replaces the entire contents of the string and *append* always adds to the end of the string.
+
+The *replace* functions provide two ways to specify the range of characters to remove:
+a position and a length, or an iterator range.
+
+The *insert* functions give us two ways to specify the insertion point:
+an index or an iterator.
+
+The added characters can be taken from another string, a character pointer, a braced-enclosed list of characters, or as a character and a count.  
+When the characters come from a string or a character pointer, we can pass additional arguments to control whether we copy some or all of the characters from the argument.
+
+
+#### 9.5.3 *string* Search Operations
+
+There are 6 different search functions, each of which has 4 overloaded versions.  
+
+Each of them returns a *string::size_type* value that is the index of where the match occurred.
+If there is no match, the function returns a *static* member named *string::npos*.
+
+The library defines npos as a const string::size_type initialized with the value **-1**.  
+Because npos is an unsigned type, this initializer means npos is equal to the **largest** possible size any string could have.
+
+It is a bad idea to use a signed type to hold the return from search functions.
+
+Here are the *string* search operations:  
+* s.find(args): find the **first** occurrence of args in s.
+* s.rfind(args): find the **last** occurrence of args in s.
+* s.find_first_of(args): find the **first** occurrence of **any** character form args in s.
+* s.find_last_of(args): find the **last** occurrence of **any** character from args in s.
+* s.find_first_not_of(args): find the **first** character in s that is **not** in args.
+* s.fins_last_not_of(args): find the **last** character in s that is **not** in args.
+* args must be one of:
+    * c, pos: look for the character c starting at position pos in s. pos defaults to 0.
+    * s2, pos: look for the string s2 starting at position pos in s. pos defaults to 0.
+    * cp, pos: look for the C-style null-terminated string pointed by the pointer cp. Start looking at position pos. pos defaults to 0.
+    * cp, pos, n: look for the first n characters in the array pointed to by the pointer cp. Start looking at position pos in s. No default for pos or n.
+    
+
+#### 9.5.4 The *compare* Functions
+
+*string* provides a set of compare functions that are similar to the C library *strcmp* function.
+
+s.compare returns zero or a positive or negative value depending on
+whether s is equal to, greater than, or less than the string formed from the given arguments.
+
+There are 6 versions of *compare.
+The arguments vary based on whether we are comparing two strings or a string and a character array.  
+
+Here are possible arguments to s.compare:
+* s2: compare s to s2.
+* pos1, n1, s2: compare n1 characters starting at pos1 from s to s2.
+* pos1, n1, s2, pos2, n2: compare n1 characters starting at pos1 from s to the n2 characters starting at pos2 in s2.
+* cp: compare s to the null-terminated array pointed to by cp.
+* pos1, n1, cp: compare n1 characters starting at pos1 from s to cp.
+* pos1, n1, cp, n2: compare n1 characters starting at pos1 from s to n2 characters starting from the pointer cp.
+
+
+#### 9.5.5 Numeric Conversions
+
+The new standard introduced several functions that convert between numeric data and library strings:  
+* to_string(val): overloaded functions returning the *string* representation of val.
+  val can be any arithmetic type. There are versions of to_string for each floating-point type and integral type that is int or larger.
+  Small integral types are promoted as usual.
+* stoi / stol / stoul / stoll / stoull(s, p, b):
+  return the initial substring of s that has numeric content as an int, long, unsigned long, long long, unsigned long long, respectively.
+  b indicates the numeric base to use for the conversion; b defaults to 10.
+  p is a pointer to a size_t in which to put the index of the first nonnumeric character in s; p defaults to 0, in which case the function does not store the index.
+* stof / stod / stld (s, p):
+  return the initial numeric substring in s as a float, double, or long double, respectively.
+  p has the same behavior as described for the integer conversions.
+  
+``` C++
+string s = "pi = 3.14";
+d = stod(s.substr(s.fin_first_of("+-.0123456789")));
+```
+
+* The string can begin with 0x or 0X to indicate hexadecimal.
+* For the functions that convert to floating-point, the string may also start with a decimal point
+  and may contain an e or E to designate the exponent.
+* For the functions that convert to integral type, depending on the base, the string can contain alphabetic characters corresponding to numbers beyond the digit 9.
+
+If the string can't be converted to a number, these functions throw an invalid_argument exception.  
+If the conversion generates a value that can't be represented, they throw out_of_range.
+
+
+
+### 9.6 Container Adaptors
