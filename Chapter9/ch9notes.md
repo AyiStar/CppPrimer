@@ -863,3 +863,96 @@ If the conversion generates a value that can't be represented, they throw out_of
 
 
 ### 9.6 Container Adaptors
+
+An **adaptor** is a general concept in the library.
+There are containers, iterators, and function adaptors.  
+Essentially, an adaptor is a mechanism for making one thing act like another.
+A container adaptor takes an existing container type and makes it act like a different type.
+
+The library defines three sequential container adaptors: **stack**, **queue** and **priority_queue**.
+
+Here are the operations and types that are common to all the container adaptors:
+* size_type: type large enough to hold the size of the largest object of this type.
+* value_type: element type.
+* container_type: type of the underlying container on which the adaptor is implemented.
+* A a: create a new empty adaptor named a.
+* A a(c): create a new adaptor named a with a copy of the container c.
+* *relational operator*: each adaptor supports all the relational operators: ==, !=, \<, \<=, \>, \>=.
+  These operators return the result of comparing the underlying containers.
+* a.empty(): false if a has any elements, true otherwise.
+* a.size(): number of elements in a.
+* swap(a, b) / a.swap(b): swap the contents of a and b; a and b must have the same type,
+  including the type of the container on which they are implemented.
+  
+##### Defining an Adaptor
+
+Each adaptor defines two constructors: the default constructor that creates an empty object,
+and a constructor that takes a container and initializes the adaptor by copying the given container.
+
+``` C++
+// dep is a deque<int>
+stack<int> stk(dep); // copy elements from dep into stk
+```
+
+By default, both *stack* and *queue* are implemented in terms of *deque*,
+and a *priority_queue* is implemented on a *vector*.  
+We can **override** the default container type by naming a sequential container as a second type argument.
+
+``` C++
+// empty stack implemented on top of vector
+stack<string, vector<string>> str_stk;
+// str_stk2 is implemented on top of vector and initially holds a copy of svec
+stack<string, vector<string>> str_stk2(svec);
+```
+
+There are constraints on which containers can be used for a given adaptor.  
+* All of the adaptors require the ability to add and remove elements.
+  So they cannot be built on an *array*.
+* All of the adaptors require operations that add, remove, or access the last element in the container.
+  So they cannot be built on a *forward_list*.
+* A *stack* requires only *push_back*, *pop_back*, and *back* operations,
+  so we can use any of the remaining container types for a *stack*.
+* A *queue* requires *back*, *push_back*, *front*, and *push_front*,
+  so we can use a *list* or *deque* but not a *vector*.
+* A *priority_queue* requires random access in addition to the *front*, *push_back*, and *pop_back* operations,
+  so it can be built on a *vector* or a *deque* but not on a *list*.
+  
+##### Stack Adaptor
+
+The *stack* type is defined in the *stack* header.
+
+Here are the stack operations:  
+(Note: use *deque* by default; can be implemented on a *list* or *vector* as well)  
+* s.pop(): remove, but do not return, the top element from the stack.
+* s.push(item) / s.emplace(args): create a new top element on the stack by copying or moving item,
+  or by constructing the element from args.
+* s.top(): return, but do not remove, the top element on the stack.
+
+``` C++
+stack<int> iniStack; // empty stack
+// fill up the stack
+for (size_t ix = 0; ix != 10; ++ix)
+    intStack.push(ix); // intStack holds 0...9 inclusive
+while (!intStack.empty()) { // while there are still values in intStack
+    int value = intStack.top();
+    // code that uses value
+    intStack.pop(); // pop the top element, and repeat
+}
+```
+
+##### The Queue Adaptor
+
+The *queue* and *priority_queue* adaptors are defined in the *queue* header.
+
+Here are *queue*, *priority_queue* operations:  
+(By default *queue* uses *deque* and *priority_queue* uses *vector*;  
+*queue* can use a *list* or *vector* as well, *priority_queue* can use a *deque*.)
+* q.pop(): remove, but do not return, the front element or highest-priority element
+  from the *queue* or *priority_queue*, respectively.
+* q.front() / q.back(): return, but do not remove, the front or back element of q.
+  **Valid only for queue**.
+* q.top(): return, but do not remove, the highest-priority element.
+  **Valid only for priority_queue**.
+* q.push(item) / q.emplace(args): create an element with value item or constructed from args at the end of the queue
+  or in its appropriate position in *priority_queue*.
+
