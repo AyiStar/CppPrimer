@@ -81,4 +81,3 @@ and returns the sum of the elements in the range.
 
 ##### Algorithms and Element Types
 
-
