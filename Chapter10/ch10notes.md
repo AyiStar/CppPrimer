@@ -216,3 +216,309 @@ and returns an iterator denoting one past the last unique element.
 
 Because algorithms cannot do container operations, we should use *erase* member to actually remove the duplicated elements.
 
+
+### 10.3 Customizing Operations
+
+The library also defines versions of algorithms that let us supply our own operation to use in place of the default operator (\<, ==, etc.).
+
+#### 10.3.1 Passing a Function to an Algorithm
+
+##### Predicates
+
+A **predicate** is an expression that can be called and that returns a value that can be used as a condition.  
+The predicates used by library algorithms are either *unary predicates* (have a single parameter) or *binary predicate* (have two parameters).
+The algorithms that take predicates call the given predicate on the elements in the input range.
+As a result, it must be possible to convert the element type to the parameter type of the predicate.
+
+The version of *sort* that takes a binary predicate uses the given predicate in place of \< to compare elements.
+
+``` C++
+// comparison function to be used to sort by word length
+bool isShorter(const string &sl, const string &s2)
+{
+    return s1.size() < s2.size();
+}
+// sort on word length, shortest to longest
+sort(words.begin(), words.end(), isShorter);
+```
+
+##### Sorting Algorithms
+
+To keep the words of the same length in alphabetical order we can use the *stable_sort*,
+which maintains the original order among equal elements.
+
+``` C++
+elimDups(words); // put words in alphabetical order and remove duplicates
+// resort by length, maintaining alphabetical order among words of the same length
+stable_sort(words.begin(), words.end(), isShorter);
+for(const auto &s : words) // no need to copy the strings
+    const << s << " "; // print each element separated by a space
+cout << endl;
+```
+
+##### Partition algorithms
+
+*partition* is defined in the *algorithm* header.
+It takes a pair of iterators denoting the input range and a **unary** predicate.
+It partitions the container so that values for which the predicate is *true* is in the first part
+and those for which the predicate is *false* appear in the second part.
+It returns an iterator just past the last element for which the predicate returned *true*.
+
+#### 10.3.2 Lambda Expressions
+
+The predicates we pass to an algorithm must have exactly **one or two** parameters,
+depending on whether the algorithm takes a **unary** or **binary** predicate, respectively.
+
+*find_if* takes a pair of iterators denoting the input range and a predicate.
+It calls the predicate on each element in the input range.
+It returns the **first** element for which the predicate returns a nonzero value,
+or its end iterator if no such element is found.
+
+##### Introducing Lambdas
+
+An object or expression is **callable** if we can apply the *call* operator to it.
+
+Callables in C++: functions, function pointers, classes that overload the function-call operator, and lambda expressions.
+
+A **lambda expression** represents a callable unit of code.
+It can be thought of as an unnamed, inline function.  
+A lambda has a return type, a parameter list, and a function body.  
+However, lambdas may be defined **inside** a function.
+
+``` C++
+// a lambda expression form
+[capture list] (parameter list) -> return type { function body }
+```
+
+The **capture list** is an (often empty) list of local variables defined in the enclosing function.  
+The return type, parameter list, and function body are the same as in any ordinary function.  
+Unlike a function, a lambda must use a **trailing return** to specify its return type.
+
+We can omit either or both of the parameter list and return type but must always include the capture list and function body.  
+* Omitting the parentheses and the parameter list in a lambda is equivalent to specifying an empty parameter list.  
+* If we omit the return type, the lambda has an inferred return type that depends on the code in the function body.
+  If the function body is just a *return* statement, the return type is inferred from the type of the expression that is returned.
+  Otherwise, the return type is *void*.
+* Lambdas with function bodies that contain **anything other than** a single *return* statement that do not specify a return type return *void*.
+
+``` C++
+// f is a callable object that takes no arguments and returns 42
+auto f = [] { return 42; }
+```
+
+We can **call** a lambda the same way we call a function by using the call operator.
+
+##### Passing Arguments to a Lambda
+
+The arguments in a call to a lambda are used to initialize the lambda's parameters.  
+But a lambda may not have default arguments. So a call to a lambda always has as many arguments as the lambda has parameters.
+
+``` C++
+stable_sort(words.begin(), words.end(),
+    [](const string &a, const string &b) { return a.size() < b.size(); });
+```
+
+##### Using the Capture List
+
+Although a lambda may appear inside a function, it can use variables local to that function
+**only** if it specifies which variables it intends to use.  
+A lambda specifies the variables it will use by including those local variables in its capture list.
+
+##### Calling *find_if*
+
+Using lambdas, we can find the first element in words whose size is at least as big as sz:
+
+``` C++
+void biggies(vector<string> &words, vector<string>::size_type sz)
+{
+    // sort words and remove the duplicates
+    elimDups(words);
+    // resort words according to the length
+    stable_sort(words.begin(), words.end(), isShorter);
+    // get an iterator to the first element whose size() is >= sz
+    auto wx = find_if(words.begin(), words.end(),
+        [sz](const string &a) { return a.size() >= sz; });
+    // compute the number of elements with size >= sz
+    auto count = words.end() - wc;
+    cout << count << " " << make_plural(count, "word", "s")
+         << " of legth " << sz << " or longer" << endl;
+}
+```
+
+##### The *for_each* Algorithm
+
+*for_each* takes a pair of iterators denoting the input range and a callable object.
+It calls the callable on each element in the input range.
+
+``` C++
+// print words of the geven size or longer, each one followed by a space
+for_each(wc, words.end()),
+    [](const string &s) { cout << s << " "; });
+cout << endl;
+```
+
+We use the capture list only for nonstatic variables defined in the surrounding function.
+A lambda can use names that are defined outside the function in which the lambda appears, and local *static*s, directly.
+
+
+#### 10.3.3 Lambda Captures and Returns
+
+When we define a lambda, the compiler generates a new unnamed class type
+that corresponds to that lambda.  
+When we pass a lambda to a function, we are defining both a new **type** and an **object** of that type:
+the argument is an unnamed object of this compiler-generated class type.  
+Similarly, when we use *auto* to define a variable initialized by a lambda, 
+we are defining an object of the type generated from that lambda.
+
+By default, the class generated from a lambda contains a **data member** corresponding to the variable **captured** by the lambda.
+The data members of a lambda are also initialized when a lambda object is created.
+
+
+Here is the lambda capture list:  
+* \[\]: empty capture list. The lambda may not use variables from the enclosing function.
+  A lambda may be local variables only if it captures them.
+* \[names\]: names is a *comma-separated* list of names local to the enclosing function.
+  By default, variables in the capture list are copied. A name preceded by & is captured by reference.
+* \[&\]: implicit by reference capture list. Entities from the enclosing function used in the lambda body are used by reference.
+* \[=\]: implicit by value capture list. Entities from the enclosing function used in the lambda body are copied into the lambda body.
+* \[&, identifier_list\]: *identifier_list* is a comma-separated list of zero or more variables from the enclosing function.
+  These variables are captured by value; any implicitly captured variables are captured by reference.
+  The names in *identifier_list* must not be preceded by an &.
+* \[=, reference_list\]: variables included in the *reference_list* are captured by reference;
+  any implicitly captured variables are captured by value.
+  The names in *reference_list* may not include *this* and must be preceded by an &.
+
+##### Captured by Value
+
+We can capture variables by **value** or by **reference**.  
+Unlike parameters, the value of a captured variable is copied when the lambda is created, not when it is called.
+
+Because the value is copied when the lambda is **created**,
+subsequent changes to a captured variable have **no** effect on the corresponding value inside the lambda.
+
+``` C++
+void func1()
+{
+    size_t v1 = 42; // local variable
+    // copies v1 into the callable object named f
+    auto f = [v1] { return v1; };
+    v1 = 0;
+    auto j = f(); // j is 42; f stored a copy of v1 when we created it
+}
+```
+
+##### Captured by Reference
+
+A variable captured by reference acts like any other reference.
+When we use the variable inside the lambda body, we are using the object to which that reference is bound.
+
+``` C++
+void func2()
+{
+    size_t v1 = 42; // local variable
+    // the object f2 contains a reference to v1
+    auto f2 = [&v1] { return v1; };
+    v1 = 0;
+    auto j = f2(); // j is 0; f2 refers to v1; it does not store it
+}
+```
+
+Reference captures have the same problems and restrictions as reference returns.
+If we capture a variable by reference, we **must** be certain that the referenced object **exists** at the time lambda is **executed**.
+
+Reference captures are sometimes **necessary**.
+For example, we might want our function to take an *ostream* on which to write.
+
+``` C++
+void biggies(vector<string> &words,
+             vector<string>::size_type sz,
+             ostream &os = cout, char c = ' ')
+{
+    // code to reorder words as before
+    // statement to print count revised to print to os
+    for_each(words.begin(), eords.end(),
+             [&os] (const string &s) { os << s << c; });
+}
+```
+
+We can also **return a lambda** from a function.  
+The function might directly return a callable object or the function might return an object of a class that has a callable object as a data member.  
+If the function returns a lambda, then that lambda must **not** contain reference captures.
+
+##### Advice: Keep Your Lambda Captures Simple
+
+A lambda capture stores information between the time the lambda is created
+and the time when the lambda itself is executed.  
+It is the programmer's responsibility to ensure that 
+whatever information is captured has the intended meaning each time the lambda is executed.
+
+As a rule, we can avoid potential problems with captures by **minimizing** the data we capture.  
+Moreover, if possible, avoid capturing pointers or references.
+
+##### Implicit Captures
+
+We can let the compiler infer which variables we use from the code in the lambda's body.
+
+##### Mutable Lambdas
+
+By default, a lambda may **not** change the value of a variable that it copies *by value*.
+If we want to be able to change the value of a captured variable,
+we must follow the parameter list with the keyword **mutable**.  
+Lambdas that are *mutable* may **not** omit the parameter list.
+
+``` C++
+void func3()
+{
+    size_t v1 = 42; // local variable
+    // f can change the value of variables it captures
+    auto f = [v1] () mutable { return ++v1; };
+    v1 = 0;
+    auto j = f(); // j is 43
+}
+```
+
+Whether a variable captured by reference can be changed (as usual) depends only on
+whether that reference refers to a *const* or non*const* type.
+
+``` C++
+void func4()
+{
+    size_t v1 = 42; // local variable
+    // v1 is a reference to a non const variable
+    // we can change that variable through the reference inside f2
+    auto f2 = [&v1] { return ++v1; };
+    v1 = 0;
+    auto j = f2(); // j is 1
+}
+```
+
+##### Specifying the Lambda Return Type
+
+By default, if a lambda body contains any statements other than a *return*,
+that lambda is assumed to return **void**.
+Lambdas inferred to return *void* may not return a value.
+
+``` C++
+// ok: the lambda returns an int
+transform(vi.begin(), vi.end(), vi.begin(),
+          [] (int i) { return i < 0 ? -i : i;});
+          
+// error: the lambda returns void
+transform(vi.begin(), vi.end(), vi.begin(),
+          [] (int i)
+          { if (i < 0) return -i; else return i;});
+```
+
+*transform* takes three iterators and a callable.
+The first two iterators denote an input sequence and the third is a destination.
+It calls the given callable on each element in the input sequence and writes the result to the destination.  
+When the input iterator and the destination iterator are the same,
+*transform* replaces each element in the input range with the result of calling the callable on that element.
+
+*count_if* takes a pair of iterators denoting the input range and a predicate that it applies to each element in the given range.
+It returns a count of how often the predicate is true.
+
+
+#### 10.3.4 Binding Argument
+
+
