@@ -521,4 +521,144 @@ It returns a count of how often the predicate is true.
 
 #### 10.3.4 Binding Argument
 
+If we need to do the same operation in many places, we should usually define a **function** rather than writing the same **lambda expressions**.  
+If an operation requires **many** statements, it is ordinarily better to use a function.
+
+It is usually straightforward to use a function in place of a lambda that has an **empty** capture list.  
+It is not so easy to write a function to replace a lambda that **captures** local variables.
+
+##### The Library *bind* Function
+
+*bind* is defined in the *functional* header.
+It can be thought of as a general-purpose **function adaptor**.  
+It takes a callable object and generates a new callable that "adapts" the parameter list of the original object.
+
+``` C++
+auto newCallable = bind(callable, arg_list);
+```
+
+The *newCallable* is itself a callable object and *arg_list* is a comma-separated list of arguments that correspond to the parameters of the given *callable*.
+
+The arguments in *arg_list* may include names of the form **_n**, where n is an integer.
+These arguments are "placeholders" representing the parameters of *newCallable*.
+They stand "in place of" the arguments that will be passed to *newCallable*.  
+The number n is the position of the parameter in the generated callable.
+
+##### Binding the *sz* Parameter of *check_size*
+
+``` C++
+bool check_size(const string &s, string::size_type sz)
+{
+    return s.size() >= sz;
+}
+
+// check 6 is a callable object that takes one argument of type string
+// and calls check_size on its given string and the value 6
+auto check6 = bind(check_size, _1, 6);
+
+string s = "hello";
+bool b1 = check6(s); // check6(s) calls check_size(s, 6);
+```
+
+Using *bind*, we can replace our original lambda-based call to *find_if*.
+
+``` C++
+auto wc = find_if(words.begin(), words.end(), bind(check_size, _1, sz));
+```
+
+##### Using placeholders Names
+
+The **_n** names are defined in a namespace named *placeholders*.  
+The namespace itself is defined in the *std* namespace.  
+To use these names, we must supply the names of both namespaces.
+
+We can use a different form of *using*:  
+using namespace *namespace_name*;  
+It says that we want to make all the names from *namespace_name* accessible to our program.
+
+##### Arguments to *bind*
+
+We can use *bind* to fix the value of a parameter.  
+More generally, we can use *bind* to **bind** or **rearrange** the parameters in the given callable.
+
+``` C++
+// g is a callable object that takes two arguments
+// the new callable will passits own arguments as the third and fifth arguments to f
+// the first, second and fourth arguments to f are bound to the given values, a, b, and c, respectively
+// when we call g, the first argument to g will be passed as the last argument to f
+// the second argument to g will be passed as f's third argument.
+auto g = bind(f, a, b, _2, c, _1);
+
+// equivalent to f(a, b, Y, c, X);
+g(X, Y); 
+```
+
+##### Using *bind* to Reorder Parameters
+
+We can use *bind* to invert the meaning of *isShorter* by writing
+``` C++
+// sort on word length, shortest to longest
+sort(words.begin(), words.end(), isShorter);
+
+// sort on word length, longest to shortest
+sort(words.begin(), words.end(), bind(isShorter, _2, _1));
+```
+
+##### Binding Reference Parameters
+
+By default, the arguments to *bind* that are not placeholders are **copied** into the callable object that *bind* returns.  
+As with lambdas, sometimes we have arguments that we want to bind but that we want to pass by reference or we might want to bind an argument that has a type that we cannot copy.
+
+If we want to pass an object to *bind* without copying it, we must use the library **ref** function.
+
+``` C++
+for_each (words.begin(), words.end(), bind(print, ref(os), _1, ' '));
+```
+
+*ref* returns an object that contains the given reference and that is itself copyable.  
+*cref* generates a class that holds a reference to const.  
+They are all defined in the *functional* header.
+
+
+
+### 10.4 Revisiting Iterators
+
+In addition to the iterators that are defined for **each** of the containers,
+the library defines several additional kinds of iterators in the *iterator* header:  
+* **insert iterator**: these iterators are bound to a container and can be used to insert elements into the container.
+* **stream iterator**: these iterators are bound to input or output streams and can be used to iterator through the associated IO stream.
+* **reverse iterator**: these iterators move backward, rather than forward. The library contains, other than *forward_list*, have reverse iterators.
+* **move iterator**: these special-purpose iterators **move** rather than **copy** their elements.
+
+
+#### 10.4.1 Insert Iterators
+
+An **inserter** is an iterator adaptor that takes a container and yields an iterator that adds elements to the specified container.  
+When we **assign** a value through an insert iterator, the iterator **calls** a container operation to add an element at a specified position in the given container.
+
+Here are insert iterator operations:  
+* it = t: insert the value t at the current position denoted by it.
+  Depending on the kind of insert iterator, and assuming c is the container to which it is bound,
+  call c.push_back(t), c.push_front(t), or c.insert(t, p), where p is the iterator position given to inserter.
+* it, ++it, it++: exist but **do nothing** to it. Each returns it.
+
+There are three kinds of inserters. Each differs from the others as to **where** elements are inserted:  
+* *back_inserter* creates an iterator that uses *push_back*.
+* *front_inserter* creates an iterator that uses *push_front*.
+* *inserter* creates an iterator that uses *insert*.
+  This function takes a second argument, which must be an iterator into the given container.
+  Elements are inserted ahead of the element denoted by the given iterator.
+  
+We can use *front_inserter* **only** if the container **has** *push_front*.  
+Similarly, we can use *back_inserter* **only** if it **has** *push_back*.
+
+When we call *inserter(c, iter), we get an iterator that, when used successively, inserts elements **ahead** of the element originally denoted by *iter*.  
+
+``` C++
+// If it is an iterator generated by inserter, then an assignment such as  
+*it = val;  
+// behaves as  
+it = c.insert(it, val);  // it points to the newly added element
+++it;  // increment it so that it denoted the same element as before
+```
 
