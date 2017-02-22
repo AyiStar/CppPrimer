@@ -662,3 +662,23 @@ it = c.insert(it, val);  // it points to the newly added element
 ++it;  // increment it so that it denoted the same element as before
 ```
 
+When we use *front_inserter*, elements are always inserted **ahead** of the then **first** element in the container.
+Even if the position we pass to *inserter* initially denotes the first element,
+as soon as we insert an element in front of that element, that element is no longer the one at the beginning of the container.
+
+``` C++
+list<int> lst = {1, 2, 3, 4};
+list<int> lst2, lst3; // empty lists
+// after copy completes, lst2 contains 4 3 2 1
+copy(lst.cbegin(), lst.cend(), front_inserter(lst2));
+// after copy completes, lst3 contains 1 2 3 4
+copy(lst.cbegin(), lst.cend(), inserter(lst3, lst3.begin());
+```
+
+When we call *front_inserter*(c), we get an insert iterator that successively calls *push_front*.
+As each element is inserted, it becomes the new first element in c.
+
+*unique_copy* takes a pair of iterators denoting the input range and a third iterator denoting a destination into which to copy the unique elements.
+
+
+#### 10.4.2 *iostream* Iterators
