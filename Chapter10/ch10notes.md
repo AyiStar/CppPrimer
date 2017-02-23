@@ -682,3 +682,82 @@ As each element is inserted, it becomes the new first element in c.
 
 
 #### 10.4.2 *iostream* Iterators
+
+Even though the *iostream* types are not containers, there are iterators that can be used with objects of the IO types.
+
+An **istream_iterator** reads an input stream, and an **ostream_iterator** writes an output stream.  
+These iterators treat their corresponding stream as a **sequence of elements** of a specified type.  
+Using a stream iterator, we can use the generic algorithms to read data from or write data to stream objects.
+
+Here are *istream_iterator* operations:  
+* istream_iterator<T> in(is); in reads values of type T from input stream is.
+* istream_iterator<T> end; off-the-end iterator for an istream_iterator that reads values of type T.
+* in1 ==/!= in2: in1 and in2 must read the same type. They are equal if they are both the end value or are bound to the same input stream.
+* \*in: return the value read from the stream.
+* in-\>mem: synonym for (\*in).mem.
+* ++in, in++; read the next value from the input stream using the \>\> operator for the element type.
+  As usual, the prefix version returns a reference to the incremented iterator.
+  The postfix version returns the old value.
+
+Here are *ostream_iterator* operations:  
+* ostream_iterator<T> out(os); out writes values of type T to output stream os.
+* ostream_iterator<T> out(os, d); out writes values of type T followed by d to output stream os.
+  d points to a null-terminated character array.
+* out = val: write val to the ostream to which out is bound using the \<\< operator.
+  val must have a type that is compatible with the type that out can write.
+* \*out, ++out, out++: these operations exist but do nothing to out. Each operator returns out.
+
+##### Operations on *istream_iterator*s
+
+When we create a stream iterator, we must specify the **type** of objects that the iterator will read or write.
+
+An *istream_iterator* uses \>\> to read a stream.
+
+When we create an *istream_iterator*, we can bind it to a stream,
+or default initialize the iterator, which creates an iterator that we can use as the *off-the-end* value.
+
+``` C++
+istream_iterator<int> int_it(cin); // read ints from cin
+istream_iterator<int> int_eof; // end iterator value
+ifstream in("afile");
+istream_iterator<string> str_it(in); // read strings from "afile"
+
+istream_iterator<int> in_iter(cin); // read ints from cin
+istream_iterator<int> eof; // istream "end" iterator
+
+while(in_iter != eof) //while there's valid input to read
+    // postfix increment reads the stream and returns the old value of the iterator
+    // we dereference that iterator to get the previous value from the stream
+    vec.push_back(*in_iter++);
+
+// we can rewrite this program as
+istream_iterator<int> in_iter(cin), eof; // read int from cin
+vector<int> vec(in_iter, eof); // construct vec from an iterator range
+```
+
+An iterator bound to a stream is equal to the **end iterator** once its associated stream hits end-of-file or encounters an IO error.
+
+##### *istream_iterator*s Are Permitted to Use Lazy Evaluation
+
+When we bind an *istream_iterator* to a stream, we are **not** guaranteed that it will read the stream **immediately**.
+The implementation is permitted to delay reading the stream until we use the iterator.
+
+##### Operations on *ostream_iterators*
+
+An *ostream_iterator* can be defined for **any** type that has an **output** operator (\<\<).  
+When we create an *ostream_iterator*, we may optionally provide a *second* argument that specifies a character string to print following **each** element.
+That string must be a **C-style** character string.  
+We **must** bind an *ostream_iterator* to a specific stream. There is **no** empty or off-the-end *ostream_iterator*.
+
+The \* and ++ operator **do nothing** on an *ostream_iterator*, so omitting them has no effect.
+However, we prefer to write \*it++ = e; rather than it = e;
+Because it uses the iterator consistently with how we use other iterator types.
+
+Rather than writing the loop ourselves, we can more easily print the elements in a container by calling *copy*.
+``` C++
+copy(vec.begin(), vec.end(), out_iter);
+cout << endl;
+```
+
+##### Using Stream Iterators with Class Types
+
