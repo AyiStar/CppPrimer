@@ -759,5 +759,97 @@ copy(vec.begin(), vec.end(), out_iter);
 cout << endl;
 ```
 
-##### Using Stream Iterators with Class Types
+
+#### 10.4.3 Reverse Iterators
+
+A **reverse iterator** is an iterator that traverses a contain *backward*, from the last element to the first.
+
+A reverse iterator **inverts the meaning** of increment and decrement.  
+* Incrementing (++) a reverse iterator moves the iterator to the previous element.
+* Decrementing (--) a reverse iterator moves the iterator to the next element.
+
+The containers, **aside from** *forward_list*, all have reverse iterators.
+
+We obtain a reverse iterator by calling the *rbegin*, *rend*, *crbegin*, *crend* members.  
+These members return iterators to the last element in the container and **one past** the beginning of the container.
+
+``` C++
+// print the elements of vec in reverse order
+vector<int> vec = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+// reverse iterator of vector form back to front
+for (auto r_iter = vec.crbegin(); r_iter != vec.crend(); ++r_iter)
+    cout << *r_iter << endl;
+```
+
+Reverse iterators let us use the algorithms transparently to process a container forward or backward.
+
+``` C++
+// sort vec in descending order
+sort(vec.rbegin(), vec.rend());
+```
+
+##### Reverse Iterators Require Decrement Operators
+
+We can define a reverse iterator **only** from an iterator that supports -- as well as ++.
+
+It is not possible to create a reverse iterator from a *forward_list* or a stream iterator.
+
+##### Relationship between Reverse Iterators snd Other Iterators
+
+``` C++
+std::string line("pig, cat, dog, fish");
+
+// print the first word in line
+auto comma = find(line.cbegin(), line.cend(), ',');
+cout << string(line.cbegin(), comma) << endl;
+
+// print the last word in line
+auto rcomma = find(line.crbegin(), line.crend(), ',');
+cout << string(rcomma.base(), line.cend()) << endl;
+
+// WRONG: will generate the word in reverse order
+cout << string(line.crbegin(), rcomma) << endl;
+```
+
+*reverse_it.base()* returns the corresponding normal iterator
+which is **one past** (in the normal order) the reverse_it.
+
+The relationship between normal and reverse iterators accommodates the properties of a **left-inclusive** range.  
+The point is that \[line.crbegin(), rcomma\) and \[rcomma.base(), line.cend()\) refer to the same range.
+
+
+
+### 10.5 Structures of Generic Algorithms
+
+The most fundamental property of any algorithm is the list of **operations** it requires from its **iterator(s)**.  
+The iterator operations required by the algorithms are grouped into five **iterators categories**:
+* Input iterator: read, but not write; single-pass, increment only
+* Output iterator: write, but not read; single-pass, increment only
+* Forward iterator: read and write; multi-pass, increment only
+* Bidirectional iterator: read and write; multi-pass, increment and decrement
+* Random-access iterator: read and write; multi-pass, full iterator arithmetic
+
+A second way to classify the algorithms is by whether they read, write, or reorder the elements in the sequence.
+
+#### 10.5.1 The Five Categories
+
+Iterators are categorized by the **operations** they provide and
+the categories form a sort of hierarchy.  
+With the exception of output iterators, an iterator of a higher category provides **all** the operations of the iterators of a lower category.
+
+The standard specifies the **minimum** category for each iterator parameter of the generic and numeric algorithms.  
+Passing an iterator of a lesser power is an error.
+
+##### The Iterator Categories
+
+Input Iterators: can read elements in a sequence, must provide:
+* Equality and inequality (==, !=) to compare two iterators.
+* Prefix and postfix increment (++) to advance the iterator.
+* Dereference operator (*) to read an element; dereference may appear only on the right-hand side of an assignment.
+* The arrow operator (-\>) as a synonym for (*it).mem.
+
+Input iterators may be used only **sequentially**.
+We are guaranteed that *it++ is valid,
+but incrementing an input iterator may invalidate all other iterators into the stream.
+Therefore, input iterators mau be used only for single-pass algorithms.
 
