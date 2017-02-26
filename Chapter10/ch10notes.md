@@ -853,3 +853,147 @@ We are guaranteed that *it++ is valid,
 but incrementing an input iterator may invalidate all other iterators into the stream.
 Therefore, input iterators mau be used only for single-pass algorithms.
 
+Output iterators: can be thought of as having complementary functionality to input iterators;
+they write rather than read elements, must provide:
+* Prefix and postfix increment (++) to advance the iterator.
+* Deference (*), which may appear only as the left-hand side of an assignment
+  (assigning to a dereferenced output iterator writes to the underlying element).
+
+We may assign to a given value of an output iterator **only once**.
+Output iterators may be used only for single-pass algorithms.
+Iterators used as a destination are typically output iterators.
+
+Forward iterators: can read and write a given sequence.
+* Move in only one direction through the sequence.
+* Support all the operations of both input iterators and output iterators.
+* Can read or write the same element multiple times.
+
+We can use the *saved state* of a forward iterator.
+Algorithms that use forward iterators may make multiple passes through the sequence.
+
+Bidirectional iterators: can read and write a sequence forward or backward.
+* Support the prefix and postfix decrement (--).
+
+Random-access iterators: provide constant-time access to any position in the sequence, and support
+* All the functionality of bidirectional iterators.
+* Relational operators (\<, \<=, \>, \>=).
+* Addition and subtraction (+, +=, -, -=).
+* Subtraction (-) when applied to two iterators.
+* Subscript operator (iter[n]) as a synonym for *(iter + n).
+
+* *istream_iterator*s are input iterators.
+* *ostream_iterator*s are output iterators.
+* Iterators on *forward_list* are forward iterators.
+* Aside from *forward_list*, the library containers supply iterators that meet the requirements for a bidirectional iterators.
+* Iterators for *array*, *deque*, *string*, and *vector* are random-access iterators, as are pointers when used to access elements of a built-in arrray.
+
+
+#### 10.5.2 Algorithm Parameter Patterns
+
+Most of algorithms have one of the following four forms:  
+* alg(beg, end, other args);
+* alg(beg, end, dest, other args);
+* alg(beg, end, beg2, other args);
+* alg(beg, end, beg2, end2, other args);
+
+##### Algorithms with a Single Destination Iterator
+
+A *dest* parameter is an iterator that denotes a destination in which the algorithm can **write** its output.  
+Algorithms *assume* that it is safe to write as many elements as needed.
+
+If *dest* is an iterator that refers directly to a container, then the algorithm writes its output to existing elements within the container.  
+More commonly, *dest* is bound to an **insert iterator** or an **ostream_iterator**.
+An insert iterator adds new elements to the container, thereby ensuring that there is enough space.
+An ostream_iterator writes to an output stream, again presenting no problem regardless of hoe many elements are written.
+
+##### Algorithms with a Second Input Sequence
+
+Algorithms that take either beg2 alone or beg2 and end2 use those iterators to denote a second **input** range.
+These algorithms typically use the elements from the second range in combination with the input range to perform a computation.
+* When an algorithm takes both beg2 and end2, these iterators denote a second range \[beg2, end2\).
+* When an algorithm takes only beg2, it treat beg2 as the **first** element in a second input range.
+  The end of this range is not specified. Instead, they *assume* that the range starting at beg2 is at least as large as the one denoted by beg, end.
+
+
+#### 10.5.3 Algorithm Naming Conventions
+
+The algorithms conform to a set of naming and overload conventions.
+
+##### Some Algorithms Use Overloading to Pass a Predicate
+
+Algorithms that take a predicate to use in place of \< or == operator, and that do not take other arguments, typically are overloaded.
+* One version of the function uses the element type's operator to compare elements.
+* The other version takes an extra parameter that is a predicate to use in place of \< or ==.
+
+##### Algorithms with _if Versions
+
+Algorithms that take an **element value** typically have a second named (**not overloaded**) version that takes a predicate in place of the value.  
+The algorithms that take a predicate have the suffix _if appended.
+
+##### Distinguishing Versions That Copy from Those That Do not
+
+By default, algorithms that rearrange elements write the rearranged elements **back** into the given input range.  
+These algorithms provide a second version that writes to a specified output destination, which have the suffix _copy appended.
+
+Some algorithms provide both _copy and _if versions. These versions take a destination iterator and a predicate.
+
+``` C++
+reverse (beg, end); // reverse the elements in the input range
+reverse_copy (beg, end, dest); // copy elements in reverse order into dest
+
+remove_if (v1.begin(), v1.end(), [] (int i) { return i % 2; }); // remove the odd elements from v1
+remove_copy_if (v1.begin(), v1.end(), back_inserter(v2), [] (int i) { return i % 2; }); // copy only the even elements from v1 into v2; v1 is unchanged
+```
+
+``` C++
+replace (beg, end, old_val, new_val);
+replace_if (beg, end, pred, new_val);
+replace_copy (beg, end, dest, old_val, new_val);
+replace_copy_if (beg, end, dest, pred, new_val)'
+```
+
+
+
+### 10.6 Container-Specific Algorithms
+
+Unlike the other containers, *list* and *forward_list* define several algorithms as **members**.  
+Some algorithms require random-access iterators or bidirectional iterators.
+Some algorithms can be used with list, but a cost in performance.
+
+Here are the algorithms that are members of *list* and *forward_list*.
+* lst.merge(lst2), lst.merge(lst2, comp):
+  Merge elements from lst2 onto lst. Both lst and lst2 must sorted.
+  Elements are **removed** from lst2.vAfter the merge, lst2 is **empty**.
+  The first version uses the \<operator; the second version uses the given comparison operation.
+* lst.remove(val), lst.remove_if(pred):
+  Call *erase* to remove each element that is == to the given value, or for which the given unary predicate succeeds.
+* lst.reverse():
+  Reverse the order of the elements in lst.
+* lst.sort(), lst.sort(comp):
+  Sort the elements of lst using \< or the given comparison operation.
+* lst.unique(), lst.unique(pred):
+  Call *erase* to remove consecutive copies of the same value.
+  The first version uses ==; the second uses the given binary predicate.
+  
+##### The *splice* Members
+
+The list types define a *splice* algorithm, which is particular to list data structures:  
+* Below are all lst.splice(args) or flst.splice_after(args).
+* (p, lst2):
+  p is an iterator to an element in lst or an iterator just before an element in flst.
+  Move all the element(s) from lst2 into lst just before p or into flst just after p.
+  Remove the element(s) from lst2. lst2 must have the same type as lst or flst and may not be the same list.
+* (p, lst2, p2):
+  p2 is a valid iterator into lst2.
+  Move the element denoted by p2 into lst or move the element just after p2 into flst.
+  lst2 can be the same list as lst or flst.
+* (p, lst2, b, e):
+  b and e must denote a valid range in lst2.
+  Move the elements in the given range from lst2.
+  lst2 and lst (or flst) can be the same list but p must not denote an element in the given range.
+  
+##### The List-Specific Operations Do Change the Containers
+
+A crucially important difference between the list-specific and the generic versions is that
+the list versions change the underlying container.
+
