@@ -164,3 +164,84 @@ process(vector<string> &v)
 
 
 ### 11.3 Operations on Associative Containers
+
+The associative containers define some types:  
+* key_type:
+  Type of the key for this container type.
+* mapped_type:
+  Type associated with each key; **map types only**.
+* value_type:
+  For sets, same as the key_type; for maps, pair\<const key_type, mapped_type\>.  
+  The key part is const because we cannot change an element's key.
+
+#### 11.3.1 Associative Container Iterators
+
+When we dereference an iterator, we get a **reference** to a value of the container's **value_type**.
+
+``` C++
+// get an iterator to an element in word_count
+auto map_it = eord_count.begin();
+// *map_it is a reference to a pair<const string, size_t> object
+cout << map_it->first; // print the key for this element
+cout << " " << map_it->second; // print the value of the element
+map_it->first = "new key"; // error: key is const
+++map_it->second; // ok: we can change the value through an iterator
+```
+
+##### Iterators for *set*s Are *const*
+
+Although the *set* types define both the *iterator* and *const_iterator* types,
+both types of iterators give us **read-only** access to the elements in the *set*.
+
+##### Iterating across an Associative Container
+
+The *map* and *set* types provide all the *begin* and *end* operations.
+We can use these functions to obtain iterators that we can use to traverse the container.
+
+##### Associative Containers and Algorithms
+
+In general, we **do not** use the generic algorithms with the associative containers.   
+* Because the  keys are *const*, we cannot pass associative container iterators to algorithms that write to or reorder container elements.
+* Although associative containers can be used with the algorithms that read elements, many of these algorithms *search* the sequence.
+  However, it is almost a **bad** idea to use a generic search algorithm because elements in an associative container can be found quickly by their key.
+  
+In practice, if we do so at all, we use an associative container with the algorithms either as the source sequence or as a destination.
+
+
+#### 11.3.2 Adding Elements
+
+The *insert* members add one element or a range of elements.  
+Because *map* and *set* types contain **unique** keys, inserting an element that is already present has **no effect**.
+
+##### Adding Elements to a *map*
+
+When we *insert* in to a map, we must remember that the element type is a **pair**.
+
+``` C++
+// 4 ways to add word to word_count
+word_count.insert({word, 1});
+word_count.insert(make_pair(word, 1));
+word_count.insert(pair<string, size_t>(word, 1));
+word_count.insert(map<string, size_t>::value_type(word, 1));
+```
+
+##### Testing the Return from *insert*
+
+The value returned by *insert* (or *emplace*) depends on the container type and the parameters.  
+For the containers that have *unique* keys, the versions of *insert* and *emplace* that add a single element return a *pair* that lets us know whether the insertion happened.
+* The *first* member of the *pair* is an iterator to the element with the given key.
+* The *second* is a *bool* indicating whether that element was inserted (true), or was already there (false).
+
+##### Adding Elements to *multiset* or *multimap*
+
+Because keys in a *multi* container need not be unique, *insert* on these types **always** inserts an element.
+
+
+#### 11.3.3 Erasing Elements
+
+The associative containers define 3 versions of *erase*:  
+* c.erase(k):
+  Remove every element with key k from c. Return size_type indicating the number of elements removed.
+* c.erase(k):
+  Remove the element denoted by the iterator p from c.
+  p must refer to an actual element in c; it must not be equal
