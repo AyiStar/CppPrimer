@@ -244,4 +244,99 @@ The associative containers define 3 versions of *erase*:
   Remove every element with key k from c. Return size_type indicating the number of elements removed.
 * c.erase(k):
   Remove the element denoted by the iterator p from c.
-  p must refer to an actual element in c; it must not be equal
+  p must refer to an actual element in c; it must not be equal to c.end().
+  Return an iterator to the element after p or c.end() if p denotes the last element in c.
+* c.erase(b, e):
+  Remove the elements in the range denoted by the iterator pair b, e. Return e.
+  
+
+#### 11.3.4 Subscripting a *map*
+
+The *map* and *unordered_map* containers provide the **subscript operator** and a corresponding **at** function:  
+* c\[k\]:
+  Return the element with key k; if k is not in c, **add** a new, value-initialized element with key k.
+* c.at(k):
+  **Checked** access to the element with key k; **throw** an out_of_range exception if k is not in c.
+
+Because the subscript operator might insert an element, we may use subscript only on a *map* that is **not const**.
+
+##### Using the Value Returned from a Subscript Operation
+
+When we subscript a *map*, we get a **mapped_type** object instead of an element type (i.e. *pair*).
+
+Sometimes we only want to know whether an element is present and *do not* want to add the element if it is not.
+In such cases, we must not use the subscript operator.
+
+
+#### 11.3.5 Accessing Elements
+
+The associative containers provide various ways to find a given element:  
+* c.find(k):
+  Return an iterator to the (first) element with key k, or the off-the-end iterator if k is not in the container.
+* c.count(k):
+  Return the number of elements with key k.
+  For the containers with unique keys, the result is always zero or one.
+* c.lower_bound(k):
+  Return an iterator to the first element with key not less than k.
+  Not valid for the unordered containers.
+* c.upper_bound(k):
+  Return an iterator to the first element with key greater than k.
+  Not valid for the unordered containers.
+* c.equal_range(k):
+  Return a *pair* of iterators denoting the elements with key k.
+  If k is not present, both members are c.end().
+
+##### Using *find* Instead of Subscript for *map*s.
+
+Using a subscript has an important side effect:
+If that key is not already in the *map*, then subscript inserts an element with that key.  
+Sometimes, we cannot use the subscript only to determine whether an element is present. In such cases, we should use *find*.
+
+##### Finding Elements in a *multimap* or *multiset*
+
+When a *multimap* or *multiset* has multiple elements of a given key, those elements will be **adjacent** within the container.  
+We are **guaranteed** that iterating across a *multimap* or *multiset* returns all the elements with a given key in sequence.
+
+``` C++
+string search_item ("Alain de Botton"); // author we'll look for
+auto entries = authors.count(search_item); // number of elements
+auto iter = authors.find(search_item); // first entry for this author
+// loop through the number of entries there are for this author
+while(entries) {
+    cout << iter->second << endl; // print each title
+    ++iter; // advance to the next title
+    --entries; // keep track of how many we've printed
+}
+```
+
+##### A Different, Iterator-Oriented Solution
+
+* The iterator returned by *lower_bound* will refer to the **first** instance of that key.
+* The iterator returned by *upper_bound* will refer just **after the last** instance of the key.
+* If the element is not in the *multimap*, then *lower_bound* and *upper_bound* will return equal iterators;
+  both will refer to the point at which the key can be inserted without disrupting the order.
+
+``` C++
+for (auto beg = authors.lower_bound(serach_item),
+          end = authors.upper_bound(search_item);
+     beg != end; ++beg)
+    cout << beg->second << endl; // print each title
+```
+
+##### The *equal_range* Function
+
+*equal_range* takes a key and returns a *pair* of iterators.  
+* If the key is present, then the first iterator refers to the first instance of the key and the second iterator refers one past the last instance of the key.
+* If no matching element is found, then both the first and second iterators refer to the position where this key can be inserted.
+
+``` C++
+for (auto pos = authors.equal_range(search_item);
+     pos.first != pos.second; ++pos.first)
+    cout << pos.first->second << endl; // print each line
+```
+
+
+#### 11.3.6 A Word Transformation Map
+
+See EXM11_3.
+
