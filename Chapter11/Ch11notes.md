@@ -340,3 +340,87 @@ for (auto pos = authors.equal_range(search_item);
 
 See EXM11_3.
 
+
+
+### 11.4 The Unordered Containers
+
+Rather than using a comparison operation to organize the elements,
+*unordered container*s use a **hash** function and the key type's == operator.
+
+Although hashing gives better average case performance in principle,
+achieving good result in practice often requires a fair bit of performance testing and tweaking.  
+So, it is usually easier to use an ordered container.
+
+##### Using an Unordered Container
+
+Aside from operations that *manage the hashing*, the unordered containers provide the **same** operations as the ordered containers.
+
+##### Managing the Buckets
+
+The unordered containers are organized as a collection of **buckets**, each of which holds zero or more elements.
+These containers use a *hash* function to map elements to buckets.
+
+The performance of an unordered container depends on the quality of its hash function and the number and size of its buckets.
+
+A hash function is allowed to map elements with different keys to the same buckets.
+When a bucket holds several elements, those elements are searched sequentially to find the one we want.
+
+Here are a set of functions that let us manage the buckets:  
+* Bucket Interface:  
+    * c.bucket_count():
+      Number of buckets in use.
+    * c.max_bucket_count():
+      Largest number of buckets this container can hold.
+    * c.bucket_size(n):
+      Number of elements in the nth bucket.
+    * c.bucket(k):
+      Bucket in which elements with key k would be found.
+* Bucket Iteration:
+    * local_iterator:
+      Iterator type that can access elements in a bucket.
+    * const_local_iterator:
+      *const* version of the bucket iterator.
+    * c.begin(n), c.end(n):
+      Iterator to the first, one past the last element in bucket n.
+    * c.cbegin(n), c.cend(n):
+      Return const_local_iterator.
+* Hash Policy:  
+    * c.load_factor():
+      Average number of elements per bucket. Return *float*.
+    * c.max_load_factor():
+      Average bucket size that c tries to maintain. c adds buckets to keep *load_factor* <= *max_load_factor*. Return float.
+    * c.rehash(n):
+      Reorganize storage so that *bucket_count* \>= n and *bucket_count* \> *size* / *max_load_factor*.
+    * c.reserve(n):
+      Reorganize so that c can hold n elements without a rehash.
+  
+##### Requirement on Key Type for Unordered Containers
+
+By default, the unordered containers use the **==** operator on the key type to compare elements.  
+They also use an object of type *hash<key_type> to generate the hash code for each element.
+
+The library supplies versions of the **hash** template for the built-in types, including pointers.  
+It also defines *hash* for some of the library types, including *string*s and the smart pointer types.  
+Thus, we can **directly** define unordered containers whose key is one of the types above.
+
+However, we **cannot** directly define an unordered container that uses a oue own class types for it key type.  
+Instead, we must supply our own version of the *hash* template.
+We can supply functions to replace both the == operator and to calculate a hash code.
+
+``` C++
+size_t hasher (const Sales_data &sd)
+{
+    return hash<string>() (sd.isbn());
+}
+
+bool eqOp (const Sales_data &lhs, ocnst Sales_data &rhs)
+{
+    return lhs.isbn() == rhs.isbn();
+}
+
+using SD_multiset = unordered_multiset<Sales_data, decltype(hasher)*, decltype(eqOp)*>;
+// arguments are the bucket size and pointers to the hash function and equality operator
+SD_multiset bookstore(42, hasher, eqOp);
+```
+
+We can override just the hash function if our class has its own == operator.
