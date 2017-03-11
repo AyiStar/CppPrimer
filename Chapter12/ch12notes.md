@@ -80,3 +80,139 @@ Here are the operations specific to *shared_ptr*:
   Return the number of objects sharing with p;
   may be a **slow** operation, intended primarily for **debugging** purposes.
   
+##### The *make_shared* Function
+
+The **safest** way to allocate and use dynamic memory is to call a library function named *make_shared*.  
+It allocates and initializes an object in dynamic memory and returns a *shared_ptr* that points to that object.  
+It is defined in the *memory* header.  
+When we call it, we must specify the type of object we want to create.
+
+``` C++
+// shared_ptr that points to an int with value 42
+shared_ptr<int> p3 = make_shared<int>(42);
+// p4 points to a string with value 9999999999
+shared_ptr<string> p4 = make_shared<string>(10, '9');
+// p5 points to an int that is value initialized to 0
+shared_ptr<int> p5 = make_shared<int>();
+// p6 points to a dynamically allocated, empty vector<string>
+auto p6 = make_shared<vector<string>>();
+```
+
+*make_shared* uses its arguments to construct an object of the given type.
+If we do not pass any arguments, then the object is value initialized.
+
+##### Copying and Assigning *shared_ptr*
+
+When we copy or assign a shared_ptr, each shared_ptr keeps track of *how many other shared_ptrs point to the same object*.
+
+``` C++
+auto p = make_shared_ptr<int>(42); // object to which p points has one user
+auto q = p; // p and q point to the same object; object to which p and q has two users
+
+auto r = make_shared<int>(42); // int to which r points has one user
+r = q; // assign to r, making it point to a different address
+       // increase the use count for the object to which q points
+       // resuce the use count of the object to which r has pointed
+       // the object r had pointed to has no users; that object is automatically freed
+```
+
+We can think of a *shared_ptr* as if an associated counter, usually referred to as a *reference count*.  
+Whenever we copy a *shared_ptr*, the count is incremented.  
+The counter is decremented when we assign a new value to the *shared_ptr* and when the *shared_ptr* itself is destroyed.  
+Once a *shared_ptr*'s counter goes to zero, the *shared_ptr* **automatically frees** the object that it manages.
+
+It is *up to the implementation* whether to use a counter or another data structure to keep track of how many pointers share state.
+
+##### *shared_ptr*s Automatically Destroy Their Objects
+ 
+When the **last** *shared_ptr* pointing to an object is destroyed, the *shared_ptr* class automatically destroys the object to which that shared_ptr points.  
+It does so through another special *member function* known as a **destructor**.
+
+Each class has a **destructor**. The destructor controls what happens when objects of that class type are *destroyed*.  
+It generally **free the resources** that an object has **allocated**.
+
+The destructor for *shared_ptr* decrements the reference count of the object to which that *shared_ptr* points.
+If the count goes to zero, the *shared_ptr* destructor destroys the object to which the *shared_ptr* points and frees the memory used by that object.
+
+##### *shared_ptr* Automatically Free the Allocated Memory
+
+``` C++
+// factory returns a shared_ptr pointing to a dynamically allocated object
+shared_ptr<Foo> factory(T arg)
+{
+    // process arg as appropriate
+    // shared_ptr will take care of deleting this memory
+    return make_shared<Foo>(arg);
+} // there is another user, the returned shared_ptr, so the created Foo will not be automatically destroyed
+
+void use_factory(T arg)
+{
+    shared_ptr<Foo> p = factory(arg);
+    // use p
+} // p goes out of scope; the memory to which p points is automatically freed
+```
+
+If you put *shared_ptr*s in a container, and you subsequently need to use some, but not all, of the elements,
+remember to **erase** the elements you no longer need.
+
+##### Classes with Resources That Have Dynamic Lifetime
+
+Programs tend to use dynamic memory for one of three purposes:  
+* They don't know *how many* objects they'll need
+* They don't know the *precise type* of the objects they need
+* They want to *share data* between several objects.
+
+A common reason to use dynamic memory is to allow multiple objects to share the same *state*.
+
+
+#### 12.1.2 Managing Memory Directly
+
+The language **itself** defines two operators that allocate and free dynamic memory:  
+* the *new* operator allocates memory.
+* the *delete* operator frees memory allocated by *new*.
+
+Using these operators to manage memory is considerably more *error-prone* than using a smart pointer.
+
+##### Using *new* to Dynamically Allocate and Initialize Objects
+
+Objects allocated on the free store are **unnamed**, so *new* offers no way to name the objects that it allocates.
+Instead, *new* returns a pointer to the object it allocates.
+
+``` C++
+int *pi = new int; // pi points to a dynamically allocated, unnamed, uninitialized int
+string *ps = new string; // initialized to empty string
+```
+
+By default, dynamically allocated objects are *default initialized*,
+which means that objects of built-in or compound type have **undefined** value;
+objects of class type are initialized by their **default constructor**.
+
+We can initialize a dynamically allocated object using *direct initialization*.  
+We can use traditional construction (using parentheses), and under the new standard, we can also use list initialization.
+
+``` C++
+int *pi = new int(1024); // object to which pi points has value 1024
+string *ps = new string(10, '9'); // *ps is "9999999999"
+vector<int> *v = new vector<int> {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+```
+
+We can also *value initialize* a dynamically allocated object by following the type name with a pair of empty parentheses.
+
+``` C++
+string *ps1 = new string; // default initialized to the empty string
+string *ps = new string(); // value initialized to the empty string
+int *pi1 = new int; // default initialized; *pi1 is undefined
+int *pi2 = new int(); // value initialized to 0; *pi2 is 0
+```
+
+For class types that define their own constructors, requesting value initialization is of no consequence;
+regardless of form, the object is initialized by the default constructor.
+
+It is a good idea to initialize dynamically allocated objects.
+
+When we provide an initializer inside parentheses, we can use *auto* to deduce the type of the object we want to allocate from that initializer.  
+However, because the compiler uses the initializer's type of deduce the type to allocate, we can use *auto* **only** with a **single initializer** inside parentheses.
+
+``` C++
+auto p1 = new auto(obj); // p1 points to an object of the type of obj and that 
+```
