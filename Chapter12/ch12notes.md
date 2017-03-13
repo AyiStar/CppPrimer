@@ -214,5 +214,183 @@ When we provide an initializer inside parentheses, we can use *auto* to deduce t
 However, because the compiler uses the initializer's type of deduce the type to allocate, we can use *auto* **only** with a **single initializer** inside parentheses.
 
 ``` C++
-auto p1 = new auto(obj); // p1 points to an object of the type of obj and that 
+auto p1 = new auto(obj); // p1 points to an object of the type of obj and that object is initialized from obj
+auto p2 = new auto {a, b, c}; // error: must use parentheses from obj
 ```
+
+##### Dynamically Allocated *const* Objects
+
+``` C++
+// allocate and initialize a const int
+const int *pci = new const int(1024);
+// allocate a default-initialized const empty string
+const string *pcs = new const string;
+```
+
+A dynamically allocated *const* object must be initialized.  
+A *const* dynamic object of a class type that defines a default constructor may be initialized implicitly.
+
+Because the allocated object is *const*, the pointer returned by *new* is a pointer to *const*.
+
+##### Memory Exhaustion
+
+Once a program has used all of its *available* memory, *new* expressions will fail.  
+By default, if *new* is unable to allocate the requested storage, it throws an exception of type *bad_alloc*.
+
+We can prevent *new* from throwing an exception by using a different form of *new*, **placement new**.  
+A placement new expression lets us pass additional arguments to *new*.
+
+``` C++
+// if allocation fails, new returns a null pointer
+int *p1 = new int; // if allocation, new throws std::bad_alloc
+int *p2 = new (nothrow) int; // if allocation fails, new returns a null pointer
+```
+
+##### Freeing Dynamic Memory
+
+We **return** memory to the system through a *delete expression*.  
+A delete expression takes a pointer to the object we want to free.  
+It performs 2 actions: destroy the object to which its given pointer points, and free the corresponding mempry.
+
+``` C++
+delete p; // p must point to a dynamically allocated object or be null
+```
+
+##### Pointer Values and *delete*
+
+The pointer we pass to *delete* must either point to dynamically allocated memory or be a *null* pointer.
+
+Deleting a pointer to memory that was not allocated by *new*, or deleting the same pointer value *more than once*, is **undefined**.
+
+``` C++
+int i, *pi1 = &i, *pi2 = nullptr;
+double *pd = new double(33), *pd2 = pd;
+delete i; // error: i is not a pointer
+delete pi1; // undefined: pi1 refers to a local
+delete pd; // ok
+delete pd2; // undefined: the memory pointed to by pd2 was already freed
+delete pi2; // ok: it is always ok to delete a null pointer
+```
+
+Although the value of a *const* object cannot be modified,
+the object itself can be destroyed.  
+A *const* dynamic object is also freed by executing *delete* on a pointer that points to that object.
+
+##### Dynamically Allocated Objects Exist until They Are Freed
+
+A dynamic object managed through a built-in pointer exist **until** it is explicitly deleted.
+
+Functions that return pointers to dynamic memory put a burden on their callers.
+The caller must remember to delete the memory.
+
+``` C++
+// factory returns a pointer to a dynamically allocated object
+Foo* factory (T arg)
+{
+    // process arg as appropriate
+    return new Foo(arg); // caller is responsible for deleting this memory
+}
+
+void use_factory (T arg)
+{
+    Foo *p = factory(arg);
+    // use p but not delete it
+} // p goes out of scope, but the mempry to which p points is not freed!
+
+void use_factory (T arg)
+{
+    Foo *p = factory(arg);
+    // use p
+    delete p; // remember to free the memory now that we no longer need it
+}
+
+Foo* use_factory (T arg)
+{
+    Foo *p = factory(arg);
+    // use p
+    return p; // caller must delete the memory
+}
+```
+
+##### Caution: Managing Dynamic Memory Is Error-Prone
+
+There are 3 common problems with using *new* and *delete* to manage dynamic memory:  
+* Forgetting to *delete* memory: memory leak,
+  cannot be detected until the application is run for a long enough time to actually exhaust memory.
+* Using an object after it has been deleted:
+  can sometimes be detected by **making the pointer null** after the delete.
+* Deleting the same memory twice:
+  can happen when two pointers address the same dynamically allocated object,
+
+We can avoid *all* of the problems above by using smart pointers exclusively.  
+The smart pointer will take care of deleting the memory *only* when there are no remaining smart pointers pointing to that memory.
+
+##### Resetting the Value of a Pointer after a *delete* and Provide Only Limited Protection
+
+When we *delete* a pointer, that pointer becomes invalid, becoming what is referred to as a *dangling pointer*.  
+Dangling pointers have all the problems of uninitialized pointers.
+
+We can avoid the problems with dangling pointers by deleting the memory associated with a pointer just before the pointer itself goes out of scope.  
+If we need to keep the pointer around, we cna assign *nullptr* to the pointer after we use *delete*.
+
+A fundamental problem with dynamic memory is that there can be *several* pointers that point to the same memory.
+
+
+#### 12.1.3 Using *shared_ptr*s with *new*
+
+Here are other ways to define and Change *shared_ptr*s:  
+* shared_ptr<T> p(q):
+  p manages the object to which the built-in pointer q points;
+  q must point to memory allocated by *new* and must be convertible to T\*.
+* shared_ptr<T> p(u):
+  p assumes ownership from the *unique_ptr* u;
+  make u null.
+* shared_ptr<T> p(q, d):
+  p assumes ownership for the object to which the built-in pointer q points.
+  q must be convertible to T*.
+  p will use the callable object d in place of *delete* to free q.
+* shared_ptr<T> p(p2, d):
+  p is a copy of the shared_ptr p2 except that p uses the callable object d in place of *delete*.
+* p.reset()/ (q) / (q, d):
+  If p is the only *shared_ptr* pointing at its object, *reset* frees p's existing object.
+  If the optional built-in pointer q is passed, make p point to q, otherwise make p null.
+  If d is supplied, will call d to free q; otherwise use *delete* to free q.
+
+We can also initialize a smart pointer from a pointer returned by *new*.
+
+``` C++
+shared_ptr<double> p1; // shared_ptr that can point at a double
+shared_ptr<int> p2(new int(42)); // p2 points to an int with value 42
+```
+
+The smart pointer constructors that take pointers are *explicit*,
+hence we cannot implicitly convert a built-in pointer to a smart pointer;
+we must use the **direct form** of initialization to initialize a smart pointer.
+
+``` C++
+shared_ptr<int> p1 = new int(1024); // error: must use direct initialization
+shared_ptr<int> p2(new int(1024)); // ok: use direct initialization
+```
+
+A function that returns a *shared_ptr* cannot implicitly convert a plain pointer in its return statement.
+We must explicitly bind a *shared_ptr* to the pointer we want to return.
+
+``` C++
+shared_ptr<int> clone(int p) {
+    return new int(p); // error: implicit conversion to shared_ptr<int>
+}
+
+shared_ptr<int> clone(int p) {
+    // ok: explicitly create a shared_ptr<int> from int*
+    return shared_ptr<int> (new int(p));
+}
+```
+
+By default, a pointer used to initialize a smart pointer must point to a **dynamic** memory because,
+by default, smart pointer use **delete** to free the associated object.
+  
+We can bind smart pointers to pointers to **other** kinds of resources.  
+However, to do so, we must supply our **own** operation to use *in place of delete*.
+
+##### Don't Mix Ordinary Pointers and Smart Pointers ...
+
