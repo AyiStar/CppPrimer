@@ -394,3 +394,109 @@ However, to do so, we must supply our **own** operation to use *in place of dele
 
 ##### Don't Mix Ordinary Pointers and Smart Pointers ...
 
+A *shared_ptr* can coordinate destruction **only** with other *shared_ptr*s that are copies of itself.
+
+When we bind a *shared_ptr* to a plain pointer, we give responsibility for that memory to that *shared_ptr*.  
+Once we give *shared_ptr* responsibility for a pointer, we should not longer use a **built-in** pointer to access the memory to which the *shared_ptr* now points.
+
+##### Don't Use *get* to Initialize or Assign Another Smart Pointer
+
+The smart pointer types define a function named *get*
+that returns a *built-in* pointer to the object that the smart pointer is managing.  
+This function is intended for cases when we need to pass a built-in pointer to code that can't use a smart pointer.  
+The code that uses the return from *get* **must not** delete that pointer.
+
+It is an error to bind another smart pointer to the pointer returned by *get*:
+``` C++
+shared_ptr<int> p(new int(42)); // reference count is 1
+int *q = p.get(); // ok: but don't use q in any way that might delete its pointer
+{ // new block
+// undefined: two independent shared_ptrs point to the same memory
+shared_ptr<int>(q);
+} // block ends, q is destroyed, and the memory to which q points is freed
+int foo = *p; // undefined: the memory to which p points was freed
+```
+
+##### Other *shared_ptr* Operations
+
+We can use *reset* to assign a new pointer to a *shared_ptr*:
+``` C++
+p = new int(1024); // error: cannot assign a pointer to a shared_ptr
+p.reset(new int(1024)); // ok: p points to a new object
+```
+
+Like assignment, *reset* updates the reference counts and, if appropriate, deletes the object to which p points.
+
+The *reset* member is often used together with *unique* to control changes to the changes to the object shared among several *shared_ptr*s.
+``` C++
+if (!p.unique())
+    p.reset(new string(*p)); // we aren't alone; allocate a new copy
+*p += newVal; // now that we know we're the only pointer, okay to change this object
+```
+
+
+#### 12.1.4 Smart Pointers and Exceptions
+
+When we use a smart pointer, the smart pointer class ensures that memory is freed when it is no longer needed
+even if the block is exited **prematurely**.  
+In contrast, memory that we manage directly is not automatically freed when an exception occurs.
+
+``` C++
+voif f()
+{
+    shared_ptr<int> sp(new int(42)); // allocate a new object
+    // code that throws an exception that is not caught inside f
+} // shared_ptr freed automatically when the function ends
+
+void f()
+{
+    int *ip = new int(42); // dynamically allocate a new object
+    // code that throws an exception that is not caught inside f
+    delete ip; // free the memory before exiting
+} // the memory cannot be freed
+```
+
+##### Smart Pointers and Dumb Classes
+
+Classes that are designed to be used by both C and C++ generally require the user to specifically free any resources that are used.
+
+We can often use the same kinds of techniques we use to manage dynamic memory to manage classes that do not have well-behaved destructors.
+
+##### Using Our Own Deletion Code
+
+``` C++
+struct destination; // represents what we are connecting to
+struct connection; // information needed to use the connection
+connection connect(destination*); // open the connection
+void disconnect(connection); // close the given connection
+void f(destination &d /* other parameters */)
+{
+    // get a connection; must remember to close it when done
+    connection c = connect(&d);
+    // use the connection
+    // if we forget to call disconnect before exiting f, there will be no way to close c
+}
+
+void end_connection(connection *p) { disconnect(*p); }
+void f(destination &d /* other parameters */)
+{
+    connection c = connect(&d);
+    shared_ptr<connection> p (&c, end_connection);
+    // use the connection
+    // when f exits, even if by an exception, the connection will be properly closed
+}
+```
+
+When we create a *shared_ptr*, we can pass an optional argument that points to a **deleter** function.
+When the *shared_ptr* is destroyed, it won't execute *delete* on its stored pointer.
+Instead, p will call the deleter function on that pointer.
+
+##### Caution: Smart Pointer Pitfalls
+
+To use smart pointers correctly, we must adhere to a set of conventions:
+* Do not use the same built-in pointer value to initialize (or *reset*) mre than one smart pointer.
+* Do not *delete* the pointer returned from *get*().
+* Do not use *get*() to initialize or *reset* another smart pointer.
+* If you use a pointer returned by *get*(), remember that the pointer will become invalid when the last corresponding smart pointer goes away.
+* If you use a smart pointer to manage a resource other than memory allocated by *new*, remember to pass a deleter.
+
